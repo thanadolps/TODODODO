@@ -5,10 +5,10 @@ import "google/protobuf/empty.proto";
 package notifier;
 
 service Notifier {
-    rpc SendNotification(Notification) returns (google.protobuf.Empty);
+    rpc SendNotification(NotificationDetail) returns (google.protobuf.Empty);
 }
 
-message Notification {
+message NotificationDetail {
     string task_id = 1;
     string title = 2;
     string description = 3;

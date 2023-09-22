@@ -3,7 +3,7 @@ use sqlx::{postgres::types::PgInterval, PgPool};
 use std::time::{Duration, SystemTime};
 use tokio::time::MissedTickBehavior;
 
-use gengrpc::notification::{Notification, NotifierClient};
+use gengrpc::notification::{NotificationDetail, NotifierClient};
 
 // TODO: come up with better name and design for this
 /// Perodically check for deadline from database to send them notifier service.
@@ -48,7 +48,7 @@ pub async fn watch_notification_task(
                     // Send to notifier service
                     tracing::debug!("sending notification for task: {:?}", task);
                     let result = notifier
-                        .send_notification(Request::new(Notification {
+                        .send_notification(Request::new(NotificationDetail {
                             task_id: task.id.to_string(),
                             title: task.title,
                             description: task.description,

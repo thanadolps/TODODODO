@@ -2,7 +2,7 @@ use color_eyre::eyre::Context;
 use poem::{listener::TcpListener, Server};
 use poem_grpc::{Response, RouteGrpc, Status};
 
-use gengrpc::notification::{Notification, Notifier, NotifierServer};
+use gengrpc::notification::{NotificationDetail, Notifier, NotifierServer};
 
 struct NotificationService;
 
@@ -10,7 +10,7 @@ struct NotificationService;
 impl Notifier for NotificationService {
     async fn send_notification(
         &self,
-        request: poem_grpc::Request<Notification>,
+        request: poem_grpc::Request<NotificationDetail>,
     ) -> Result<Response<()>, Status> {
         let notification = request.into_inner();
 
