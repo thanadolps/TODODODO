@@ -23,7 +23,7 @@ impl Notifier for NotificationService {
 
 #[derive(serde::Deserialize, Debug)]
 struct Env {
-    port: String,
+    port: u16,
 }
 
 #[tokio::main]

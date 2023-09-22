@@ -13,7 +13,7 @@ use sqlx::postgres::PgPool;
 
 #[derive(serde::Deserialize, Debug)]
 struct Env {
-    port: String,
+    port: u16,
     database_url: String,
     notifer_url: String,
 }
