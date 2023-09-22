@@ -1,0 +1,7 @@
+procs:
+  task_service:
+    cwd: task_service
+    shell: sqlx migrate run && cargo run
+  notification_service:
+    cwd: notification_service
+    shell: cargo run
