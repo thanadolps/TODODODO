@@ -747,6 +747,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "gengrpc"
+version = "0.0.0"
+dependencies = [
+ "poem",
+ "poem-grpc",
+ "poem-grpc-build",
+ "prost",
+ "prost-types",
+]
+
+[[package]]
 name = "getrandom"
 version = "0.2.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1213,11 +1224,10 @@ dependencies = [
  "color-eyre",
  "dotenvy",
  "envy",
+ "gengrpc",
  "poem",
  "poem-grpc",
- "poem-grpc-build",
- "prost",
- "prost-types",
+ "poem-openapi",
  "serde",
  "tokio",
  "tracing",
@@ -2465,12 +2475,10 @@ dependencies = [
  "color-eyre",
  "dotenvy",
  "envy",
+ "gengrpc",
  "poem",
  "poem-grpc",
- "poem-grpc-build",
  "poem-openapi",
- "prost",
- "prost-types",
  "serde",
  "sqlx",
  "structmapper",

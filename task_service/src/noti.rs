@@ -3,7 +3,7 @@ use sqlx::{postgres::types::PgInterval, PgPool};
 use std::time::{Duration, SystemTime};
 use tokio::time::MissedTickBehavior;
 
-poem_grpc::include_proto!("notifier");
+use gengrpc::notification::{Notification, NotifierClient};
 
 // TODO: come up with better name and design for this
 /// Perodically check for deadline from database to send them notifier service.

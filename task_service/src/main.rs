@@ -11,6 +11,8 @@ use poem_grpc::ClientConfig;
 use poem_openapi::OpenApiService;
 use sqlx::postgres::PgPool;
 
+use gengrpc::notification::NotifierClient;
+
 #[derive(serde::Deserialize, Debug)]
 struct Env {
     port: u16,
@@ -37,7 +39,7 @@ async fn main() -> color_eyre::Result<()> {
     sqlx::migrate!("./migrations").run(&pool).await?;
 
     // gRPC clients
-    let notifier = noti::NotifierClient::new(ClientConfig::builder().uri(env.notifer_url).build()?);
+    let notifier = NotifierClient::new(ClientConfig::builder().uri(env.notifer_url).build()?);
 
     // Handler
     let handler = handlers::Api { pool: pool.clone() };

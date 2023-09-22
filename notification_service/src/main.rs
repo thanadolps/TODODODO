@@ -2,7 +2,7 @@ use color_eyre::eyre::Context;
 use poem::{listener::TcpListener, Server};
 use poem_grpc::{Response, RouteGrpc, Status};
 
-poem_grpc::include_proto!("notifier");
+use gengrpc::notification::{Notification, Notifier, NotifierServer};
 
 struct NotificationService;
 
