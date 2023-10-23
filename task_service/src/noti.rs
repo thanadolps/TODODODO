@@ -1,10 +1,16 @@
+use gengrpc::notification::{NotificationDetail, NotifierClient};
+use lapin::{
+    options::*, publisher_confirm::Confirmation, types::FieldTable, BasicProperties, Channel,
+    Connection, ConnectionProperties, Result,
+};
 use poem_grpc::Request;
+
+use serde_json::json;
+use tracing::info;
+
 use sqlx::{postgres::types::PgInterval, PgPool};
 use std::time::{Duration, SystemTime};
 use tokio::time::MissedTickBehavior;
-
-use gengrpc::notification::{NotificationDetail, NotifierClient};
-
 // TODO: come up with better name and design for this
 /// Perodically check for deadline from database to send them notifier service.
 pub async fn watch_notification_task(
@@ -12,6 +18,7 @@ pub async fn watch_notification_task(
     notifier: NotifierClient,
     check_period: Duration,
     lead_time: Duration,
+    channel: Channel,
 ) {
     tracing::info!("watching for deadline");
 
@@ -39,6 +46,8 @@ pub async fn watch_notification_task(
         .fetch_all(&pool)
         .await;
 
+        //test by removing AND
+
         match result {
             Err(err) => {
                 tracing::error!("failed to fetch tasks: {}", err);
@@ -46,18 +55,40 @@ pub async fn watch_notification_task(
             Ok(tasks) => {
                 for task in tasks {
                     // Send to notifier service
-                    tracing::debug!("sending notification for task: {:?}", task);
-                    let result = notifier
-                        .send_notification(Request::new(NotificationDetail {
-                            task_id: task.id.to_string(),
-                            title: task.title,
-                            description: task.description,
-                            deadline: task.deadline.map(|d| SystemTime::from(d).into()),
-                        }))
-                        .await;
-                    if let Err(err) = result {
-                        tracing::error!("failed to send notification: {:?}", err);
-                    }
+                    // tracing::debug!("sending notification for task: {:?}", task);
+                    // let result = notifier
+                    //     .send_notification(Request::new(NotificationDetail {
+                    //         task_id: task.id.to_string(),
+                    //         title: task.title,
+                    //         description: task.description,
+                    //         deadline: task.deadline.map(|d| SystemTime::from(d).into()),
+                    //     }))
+                    //     .await;
+                    // Serialize the Request to JSON.
+
+                    let task = json!({
+                        "task_id": task.id.to_string(),
+                        "title": task.title,
+                        "description": task.description,
+                        "deadline": task.deadline.map(|d| SystemTime::from(d)),
+                    });
+                    let payload: Vec<u8> =
+                        serde_json::to_vec(&task).expect("Failed to serialize Task to JSON");
+
+                    channel
+                        .basic_publish(
+                            "",
+                            "task_queue",
+                            BasicPublishOptions::default(),
+                            &payload,
+                            BasicProperties::default(),
+                        )
+                        .await
+                        .unwrap();
+
+                    info!("Sent task: {:?}", task);
+
+                    //set payload into rabbit mq
                 }
             }
         }

@@ -10,8 +10,14 @@ use poem::{listener::TcpListener, middleware, EndpointExt, Route, Server};
 use poem_grpc::ClientConfig;
 use poem_openapi::OpenApiService;
 use sqlx::postgres::PgPool;
+use tracing::info;
 
 use gengrpc::{notification::NotifierClient, performance::PerformanceClient};
+
+use lapin::{
+    options::*, publisher_confirm::Confirmation, types::FieldTable, BasicProperties, Connection,
+    ConnectionProperties, Result,
+};
 
 #[derive(serde::Deserialize, Debug)]
 struct Env {
@@ -45,7 +51,10 @@ async fn main() -> color_eyre::Result<()> {
         PerformanceClient::new(ClientConfig::builder().uri(env.performance_url).build()?);
 
     // Handler
-    let handler = handlers::Api { pool: pool.clone(), performance };
+    let handler = handlers::Api {
+        pool: pool.clone(),
+        performance,
+    };
 
     // OpenAPI
     let api_service = OpenApiService::new(handler, "TODODODO - Task Service", "1.0")
@@ -62,12 +71,40 @@ async fn main() -> color_eyre::Result<()> {
         .with(middleware::CatchPanic::default());
 
     // Watch for deadline
-    tokio::spawn(noti::watch_notification_task(
-        pool,
-        notifier,
-        Duration::from_secs(10),
-        Duration::from_secs(30 * 60),
-    ));
+
+    let addr = std::env::var("AMQP_ADDR").unwrap_or_else(|_| "amqp://127.0.0.1:5672/%2f".into());
+
+    async_global_executor::block_on(async {
+        let conn = Connection::connect(&addr, ConnectionProperties::default())
+            .await
+            .unwrap();
+
+        info!("Task Service CONNECTED!");
+
+        let channel = conn.create_channel().await.unwrap();
+
+        //send channel into noti.rs
+
+        // Declare a queue for sending tasks.
+        let task_queue = channel
+            .queue_declare(
+                "task_queue",
+                QueueDeclareOptions::default(),
+                FieldTable::default(),
+            )
+            .await
+            .unwrap();
+
+        info!(?task_queue, "Declared task queue");
+
+        tokio::spawn(noti::watch_notification_task(
+            pool,
+            notifier,
+            Duration::from_secs(60),
+            Duration::from_secs(30 * 60),
+            channel,
+        ));
+    });
 
     // Start server
     let ip = format!("127.0.0.1:{}", env.port);

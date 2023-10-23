@@ -1,6 +1,10 @@
-use color_eyre::eyre::Context;
-use poem::{listener::TcpListener, Server};
-use poem_grpc::{Response, RouteGrpc, Status};
+use futures_lite::stream::StreamExt;
+use lapin::{
+    options::*, publisher_confirm::Confirmation, types::FieldTable, BasicProperties, Connection,
+    ConnectionProperties, Result,
+};
+use poem_grpc::{Response, Status};
+use tracing::info;
 
 use gengrpc::notification::{NotificationDetail, Notifier, NotifierServer};
 use webhook::client::WebhookClient;
@@ -12,7 +16,7 @@ impl Notifier for NotificationService {
     async fn send_notification(
         &self,
         request: poem_grpc::Request<NotificationDetail>,
-    ) -> Result<Response<()>, Status> {
+    ) -> std::result::Result<Response<()>, Status> {
         let notification: NotificationDetail = request.into_inner();
 
         // TODO: In the future, actually send notification to user
@@ -31,28 +35,65 @@ impl Notifier for NotificationService {
     }
 }
 
-#[derive(serde::Deserialize, Debug)]
-struct Env {
-    port: u16,
-}
-
-#[tokio::main]
-async fn main() -> color_eyre::Result<()> {
-    color_eyre::install()?;
-
-    // Envars
-    dotenvy::dotenv().ok();
-    let env = envy::from_env::<Env>().context("Failed to parse environment variables")?;
-
-    // Setup tracing/logging
-    if std::env::var_os("RUST_LOG").is_none() {
-        std::env::set_var("RUST_LOG", "poem=debug,info");
+fn main() -> Result<()> {
+    if std::env::var("RUST_LOG").is_err() {
+        std::env::set_var("RUST_LOG", "info");
     }
+
     tracing_subscriber::fmt::init();
 
-    Server::new(TcpListener::bind(format!("127.0.0.1:{}", env.port)))
-        .run(RouteGrpc::new().add_service(NotifierServer::new(NotificationService)))
-        .await?;
+    let addr = std::env::var("AMQP_ADDR").unwrap_or_else(|_| "amqp://127.0.0.1:5672/%2f".into());
 
-    Ok(())
+    async_global_executor::block_on(async {
+        let conn = Connection::connect(&addr, ConnectionProperties::default()).await?;
+
+        info!("Notification Service CONNECTED!");
+
+        // Create a channel.
+        let channel = conn.create_channel().await?;
+
+        // Declare the same queue for receiving tasks.
+        let task_queue = channel
+            .queue_declare(
+                "task_queue",
+                QueueDeclareOptions::default(),
+                FieldTable::default(),
+            )
+            .await?;
+        info!(?task_queue, "Declared task queue");
+
+        // Set up a consumer to receive and process tasks.
+        let mut consumer = channel
+            .basic_consume(
+                "task_queue",
+                "my_consumer",
+                BasicConsumeOptions::default(),
+                FieldTable::default(),
+            )
+            .await?;
+
+        async_global_executor::spawn(async move {
+            info!("Notification Service is ready to receive tasks.");
+            while let Some(delivery_result) = consumer.next().await {
+                match delivery_result {
+                    Ok(delivery) => {
+                        let task = String::from_utf8_lossy(&delivery.data);
+                        info!("Received task: {}", task);
+
+                        // Acknowledge the task to remove it from the queue.
+                        channel
+                            .basic_ack(delivery.delivery_tag, BasicAckOptions::default())
+                            .await
+                            .expect("Failed to acknowledge the task");
+                    }
+                    Err(err) => {
+                        info!("Error in consumer: {:?}", err);
+                    }
+                }
+            }
+        })
+        .await;
+
+        Ok(())
+    })
 }
