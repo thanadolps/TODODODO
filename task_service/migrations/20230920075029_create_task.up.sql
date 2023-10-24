@@ -4,7 +4,7 @@ CREATE TABLE task (
     title TEXT NOT NULL,
     description TEXT NOT NULL,
     deadline TIMESTAMPTZ,
-
+    completed BOOL NOT NULL DEFAULT false,
     user_id UUID NOT NULL,
     community_id UUID
 );

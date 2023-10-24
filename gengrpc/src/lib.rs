@@ -4,3 +4,7 @@
 pub mod notification {
     poem_grpc::include_proto!("notifier");
 }
+
+pub mod performance {
+    poem_grpc::include_proto!("performance");
+}

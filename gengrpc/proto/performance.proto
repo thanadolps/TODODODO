@@ -1,0 +1,13 @@
+syntax="proto3";
+import "google/protobuf/empty.proto";
+
+package performance;
+
+service Performance {
+    rpc AddStreak(StreakDetail) returns (google.protobuf.Empty);
+    rpc ResetStreak(StreakDetail) returns (google.protobuf.Empty);
+}
+
+message StreakDetail {
+    string user_id = 1;
+}

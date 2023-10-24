@@ -11,13 +11,14 @@ use poem_grpc::ClientConfig;
 use poem_openapi::OpenApiService;
 use sqlx::postgres::PgPool;
 
-use gengrpc::notification::NotifierClient;
+use gengrpc::{notification::NotifierClient, performance::PerformanceClient};
 
 #[derive(serde::Deserialize, Debug)]
 struct Env {
     port: u16,
     database_url: String,
     notifer_url: String,
+    performance_url: String,
 }
 
 #[tokio::main]
@@ -40,9 +41,11 @@ async fn main() -> color_eyre::Result<()> {
 
     // gRPC clients
     let notifier = NotifierClient::new(ClientConfig::builder().uri(env.notifer_url).build()?);
+    let performance =
+        PerformanceClient::new(ClientConfig::builder().uri(env.performance_url).build()?);
 
     // Handler
-    let handler = handlers::Api { pool: pool.clone() };
+    let handler = handlers::Api { pool: pool.clone(), performance };
 
     // OpenAPI
     let api_service = OpenApiService::new(handler, "TODODODO - Task Service", "1.0")
@@ -62,7 +65,7 @@ async fn main() -> color_eyre::Result<()> {
     tokio::spawn(noti::watch_notification_task(
         pool,
         notifier,
-        Duration::from_secs(60),
+        Duration::from_secs(10),
         Duration::from_secs(30 * 60),
     ));
 

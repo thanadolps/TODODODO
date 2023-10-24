@@ -1,7 +1,9 @@
 use crate::{dtos, models};
 
+use gengrpc::performance::{PerformanceClient, StreakDetail};
 use poem::error::InternalServerError;
 use poem::Result;
+use poem_grpc::Request;
 use poem_openapi::{param::Path, payload::Json, ApiResponse, OpenApi};
 use uuid::Uuid;
 
@@ -16,6 +18,7 @@ pub enum OptionalTaskResponse {
 
 pub struct Api {
     pub pool: sqlx::PgPool,
+    pub performance: PerformanceClient
 }
 
 #[OpenApi]
@@ -53,9 +56,9 @@ impl Api {
             models::Task,
             "INSERT INTO task (title, description, deadline, user_id) VALUES ($1, $2, $3, $4) RETURNING *",
             task.title,
-            task.description,
+            task.description, 
             task.deadline,
-            task.user_id
+            task.user_id 
         )
         .fetch_one(&self.pool)
         .await
@@ -86,7 +89,36 @@ impl Api {
         match task.map(dtos::Task::from) {
             Some(task) => Ok(OptionalTaskResponse::Ok(Json(task))),
             None => Ok(OptionalTaskResponse::NotFound),
+        } 
+    }
+
+    #[oai(path = "/task/:id/complete", method = "patch")]
+    /// Complete Task
+    pub async fn complete_task(&self, Path(id): Path<Uuid>) -> Result<()> {
+        #[derive(Debug)]
+        struct Result {
+            user_id: Uuid,
+            completed: Option<bool>
+        } 
+
+        let completed: Option<Result> = sqlx::query_as!(Result, "
+        UPDATE task.task SET completed = true WHERE id=$1 RETURNING user_id, (
+            select completed from task.task WHERE id=$1
+        ) as completed;
+        ", id)
+            .fetch_optional(&self.pool) 
+            .await.map_err(InternalServerError)?;  
+
+        tracing::info!("result: {:?}", completed);
+
+        if matches!(completed, Some(Result {completed: Some(false), ..})) {
+            tracing::info!("Adding streak");
+            self.performance.add_streak(Request::new(StreakDetail {
+                user_id: completed.unwrap().user_id.to_string()
+            })).await.map_err(InternalServerError)?;
         }
+
+        Ok(())
     }
 
     #[oai(path = "/task/:id", method = "delete")]

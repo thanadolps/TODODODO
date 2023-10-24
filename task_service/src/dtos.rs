@@ -11,6 +11,7 @@ pub struct Task {
     pub title: String,
     pub description: String,
     pub deadline: Option<DateTime>,
+    pub completed: bool,
 
     pub user_id: Uuid,
     pub community_id: Option<Uuid>,

@@ -3,6 +3,7 @@ use poem::{listener::TcpListener, Server};
 use poem_grpc::{Response, RouteGrpc, Status};
 
 use gengrpc::notification::{NotificationDetail, Notifier, NotifierServer};
+use webhook::client::WebhookClient;
 
 struct NotificationService;
 
@@ -12,10 +13,19 @@ impl Notifier for NotificationService {
         &self,
         request: poem_grpc::Request<NotificationDetail>,
     ) -> Result<Response<()>, Status> {
-        let notification = request.into_inner();
+        let notification: NotificationDetail = request.into_inner();
 
         // TODO: In the future, actually send notification to user
-        println!("Received notification request: {:?}", notification);
+        let url: &str = "https://discord.com/api/webhooks/1166039146989629563/Rylu9HS5c34vNSDMVY9LyhukJLtvV09-3MlN_QmsrGKQ-KFbIQd6E_aFZDqMSdlAqOgC";
+        let msg = format!(
+            "This is a notification for your task {} ({}). Description: {}. Deadline: {:?}",
+            notification.title,
+            notification.task_id,
+            notification.description,
+            notification.deadline
+        );
+        let client: WebhookClient = WebhookClient::new(url);
+        client.send(|message| message.content(&msg)).await.unwrap();
 
         Ok(Response::new(()))
     }

@@ -1,5 +1,5 @@
 [package]
-name = "notification_service"
+name = "viz_service"
 version = "0.1.0"
 edition = "2021"
 
@@ -10,6 +10,14 @@ poem = { workspace = true }
 poem-openapi = { workspace = true }
 poem-grpc = { workspace = true }
 
+uuid = { workspace = true }
+time = { workspace = true }
+
+sqlx = { workspace = true }
+
+structmapper = "0.4.2"
+# diff-struct = "0.5.3"
+
 color-eyre = {workspace = true}
 dotenvy = {workspace = true}
 envy = {workspace = true}
@@ -19,5 +27,3 @@ tracing = {workspace = true}
 tracing-subscriber = {workspace = true}
 
 gengrpc = {path = "../gengrpc"}
-webhook = "2.1.2"
- 

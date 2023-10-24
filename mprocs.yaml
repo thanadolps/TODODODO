@@ -5,3 +5,6 @@ procs:
   notification_service:
     cwd: notification_service
     shell: cargo run
+  viz_service:
+    cwd: viz_service
+    shell: sqlx migrate run && cargo run
