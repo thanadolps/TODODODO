@@ -1,5 +1,5 @@
 BEGIN;
-CREATE TABLE task (
+CREATE TABLE IF NOT EXISTS task (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     title TEXT NOT NULL,
     description TEXT NOT NULL,

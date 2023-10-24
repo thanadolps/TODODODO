@@ -5,11 +5,12 @@ members = [
     "notification_service",
     "gengrpc",
     "viz_service",
+    "account_service"
 ]
 
 [workspace.dependencies]
 poem = { version = "1.3.57", features = ["test"] }
-poem-openapi = { version = "3.0.3", features = ["openapi-explorer", "uuid", "time"] }
+poem-openapi = { version = "3.0.3", features = ["openapi-explorer", "uuid", "time", "email"] }
 poem-grpc = "0.2"
 # prost = "0.11"
 # prost-types = "0.11"

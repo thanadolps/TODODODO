@@ -8,3 +8,6 @@ procs:
   viz_service:
     cwd: viz_service
     shell: sqlx migrate run && cargo run
+  account_service:
+    cwd: account_service
+    shell: sqlx migrate run && cargo run
