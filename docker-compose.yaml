@@ -8,7 +8,7 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
     volumes:
-      - ./postgres-data:/var/lib/postgresql/data
+      # - ./postgres-data:/var/lib/postgresql/data
       # https://cadu.dev/creating-a-docker-image-with-database-preloaded/
       - ./docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
   rabbitmq:
@@ -19,3 +19,105 @@ services:
     environment:
       - RABBITMQ_DEFAULT_USER=guest
       - RABBITMQ_DEFAULT_PASS=guest
+      
+
+#######################################
+  # Postgres: The database used by Kong
+#######################################
+  kong-database:
+    image: postgres:9.6
+    container_name: kong-postgres
+    restart: on-failure
+    networks:
+      - kong-net
+    volumes:
+      - kong_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: kong
+      POSTGRES_PASSWORD: ${KONG_PG_PASSWORD:-kong}
+      POSTGRES_DB: kong
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "kong"]
+      interval: 30s
+      timeout: 30s
+      retries: 3
+#######################################
+  # Kong database migration
+#######################################
+  kong-migration:
+    image: ${KONG_DOCKER_TAG:-kong:latest}
+    command: kong migrations bootstrap
+    networks:
+      - kong-net
+    restart: on-failure
+    environment:
+      KONG_DATABASE: postgres
+      KONG_PG_HOST: kong-database
+      KONG_PG_DATABASE: kong
+      KONG_PG_USER: kong
+      KONG_PG_PASSWORD: ${KONG_PG_PASSWORD:-kong}
+    depends_on:
+      - kong-database
+#######################################
+  # Kong: The API Gateway
+#######################################
+  kong:
+    image: ${KONG_DOCKER_TAG:-kong:latest}
+    restart: on-failure
+    networks:
+      - kong-net
+    environment:
+      KONG_DATABASE: postgres
+      KONG_PG_HOST: kong-database
+      KONG_PG_DATABASE: kong
+      KONG_PG_USER: kong
+      KONG_PG_PASSWORD: ${KONG_PG_PASSWORD:-kong}
+      KONG_PROXY_LISTEN: 0.0.0.0:9100
+      KONG_PROXY_LISTEN_SSL: 0.0.0.0:8443
+      KONG_ADMIN_LISTEN: 0.0.0.0:9101
+    depends_on:
+      - kong-database
+    healthcheck:
+      test: ["CMD", "kong", "health"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+    ports:
+      - "9100:8000"
+      - "9101:8001"
+      - "8443:8443"
+      - "8444:8444"
+#######################################
+  # Konga database prepare
+#######################################
+  konga-prepare:
+    image: pantsel/konga:latest
+    command: "-c prepare -a postgres -u postgresql://kong:${KONG_PG_PASSWORD:-kong}@kong-database:5432/konga"
+    networks:
+      - kong-net
+    restart: on-failure
+    depends_on:
+      - kong-database
+#######################################
+  # Konga: Kong GUI
+#######################################
+  konga:
+    image: pantsel/konga:latest
+    restart: always
+    networks:
+        - kong-net   
+    environment:
+      DB_ADAPTER: postgres
+      DB_URI: postgresql://kong:${KONG_PG_PASSWORD:-kong}@kong-database:5432/konga
+      NODE_ENV: production
+    depends_on:
+      - kong-database
+    ports:
+      - "1337:1337"
+volumes:
+  kong_data: {}
+  
+networks:
+ kong-net:
