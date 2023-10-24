@@ -11,3 +11,11 @@ services:
       - ./postgres-data:/var/lib/postgresql/data
       # https://cadu.dev/creating-a-docker-image-with-database-preloaded/
       - ./docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
+  rabbitmq:
+    image: "rabbitmq:3.12-management"
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
