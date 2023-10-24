@@ -107,7 +107,7 @@ async fn main() -> color_eyre::Result<()> {
     });
 
     // Start server
-    let ip = format!("127.0.0.1:{}", env.port);
+    let ip = format!("0.0.0.0:{}", env.port);
     Server::new(TcpListener::bind(ip)).run(route).await?;
     Ok(())
 }
