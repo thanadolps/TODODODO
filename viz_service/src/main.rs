@@ -70,7 +70,7 @@ async fn main() -> color_eyre::Result<()> {
     let pool = PgPool::connect(&env.database_url).await?;
 
     let service = PerformanceService { pool };
-    Server::new(TcpListener::bind(format!("127.0.0.1:{}", env.port)))
+    Server::new(TcpListener::bind(format!("0.0.0.0:{}", env.port)))
         .run(RouteGrpc::new().add_service(PerformanceServer::new(service)))
         .await?;
 
