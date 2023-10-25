@@ -1,13 +1,9 @@
 procs:
   task_service:
-    cwd: task_service
-    shell: sqlx migrate run && cargo run
+    shell: cd task_service && sqlx migrate run && cargo watch -x "run -p task_service"
   notification_service:
-    cwd: notification_service
-    shell: cargo run
+    shell: cd notification_service && cargo watch -x "run -p notification_service"
   viz_service:
-    cwd: viz_service
-    shell: sqlx migrate run && cargo run
+    shell: cd viz_service && sqlx migrate run && cargo watch -x "run -p viz_service"
   account_service:
-    cwd: account_service
-    shell: sqlx migrate run && cargo run
+    shell: cd account_service && sqlx migrate run && cargo watch -x "run -p account_service"
