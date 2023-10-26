@@ -32,7 +32,10 @@ pub async fn watch_notification_task(
         SELECT id, title, description, deadline as "deadline!"
         FROM task
         WHERE deadline IS NOT NULL
-        "#
+        AND deadline BETWEEN NOW() + $1 AND NOW() + $1 + $2
+        "#,
+            Some(&lead_time),
+            Some(&check_period)
         )
         .fetch_all(&pool)
         .await;
