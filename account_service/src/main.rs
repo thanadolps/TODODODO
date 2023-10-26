@@ -1,13 +1,13 @@
 mod handlers;
 
 use color_eyre::eyre::Context;
-use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation};
+use jsonwebtoken::EncodingKey;
 use poem::{listener::TcpListener, middleware, EndpointExt, Route, Server};
 use poem_openapi::OpenApiService;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use sqlx::postgres::PgPool;
 
-#[derive(serde::Deserialize, Debug)]
+#[derive(Deserialize, Debug)]
 struct Env {
     port: u16,
     database_url: String,

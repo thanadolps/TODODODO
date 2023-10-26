@@ -16,7 +16,7 @@ poem-grpc = "0.2"
 # prost-types = "0.11"
 
 uuid = { version = "1.4.1", features = ["v4", "serde"] }
-time = "0.3.28"
+time = { version="0.3.28", features=["serde"] }
 
 sqlx = { version = "0.7.1", features = ["runtime-tokio", "macros", "postgres", "uuid", "time"] }
 
@@ -27,3 +27,6 @@ serde = "1.0.188"
 tokio = { version = "1.32.0", features = ["macros", "rt-multi-thread"] }
 tracing = "0.1.37"
 tracing-subscriber = "0.3.17"
+
+[profile.dev.package.sqlx-macros]
+opt-level = 3

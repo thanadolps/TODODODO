@@ -29,6 +29,5 @@ tracing-subscriber = {workspace = true}
 gengrpc = {path = "../gengrpc"}
 
 serde_json = "1.0"
-async-global-executor = "2.3.1"
 futures-lite = "1.13.0"
 lapin = "2.0"

@@ -703,6 +703,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0f32d04922c60427da6f9fef14d042d9edddef64cb9d4ce0d64d0685fbeb1fd3"
 dependencies = [
  "powerfmt",
+ "serde",
 ]
 
 [[package]]
@@ -1634,18 +1635,14 @@ dependencies = [
 name = "notification_service"
 version = "0.1.0"
 dependencies = [
- "async-global-executor",
  "color-eyre",
  "dotenvy",
  "envy",
  "futures-lite",
- "gengrpc",
  "lapin",
- "poem",
- "poem-grpc",
- "poem-openapi",
  "serde",
  "serde_json",
+ "time",
  "tokio",
  "tracing",
  "tracing-subscriber",
@@ -3087,7 +3084,6 @@ dependencies = [
 name = "task_service"
 version = "0.0.0"
 dependencies = [
- "async-global-executor",
  "color-eyre",
  "dotenvy",
  "envy",

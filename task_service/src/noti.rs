@@ -1,14 +1,10 @@
-use lapin::{
-    options::*, publisher_confirm::Confirmation, types::FieldTable, BasicProperties, Channel,
-    Connection, ConnectionProperties, Result,
-};
-use poem_grpc::Request;
+use lapin::{options::*, BasicProperties, Channel};
 
 use serde_json::json;
 use tracing::info;
 
 use sqlx::{postgres::types::PgInterval, PgPool};
-use std::time::{Duration, SystemTime};
+use std::time::Duration;
 use tokio::time::MissedTickBehavior;
 // TODO: come up with better name and design for this
 /// Perodically check for deadline from database to send them notifier service.
@@ -33,13 +29,10 @@ pub async fn watch_notification_task(
 
         let result = sqlx::query!(
             r#"
-        SELECT id, title, description, deadline
+        SELECT id, title, description, deadline as "deadline!"
         FROM task
         WHERE deadline IS NOT NULL
-        AND deadline BETWEEN NOW() + $1 AND NOW() + $1 + $2
-        "#,
-            Some(&lead_time),
-            Some(&check_period)
+        "#
         )
         .fetch_all(&pool)
         .await;
@@ -68,7 +61,7 @@ pub async fn watch_notification_task(
                         "task_id": task.id.to_string(),
                         "title": task.title,
                         "description": task.description,
-                        "deadline": task.deadline.map(|d| SystemTime::from(d)),
+                        "deadline": task.deadline,
                     });
                     let payload: Vec<u8> =
                         serde_json::to_vec(&task).expect("Failed to serialize Task to JSON");

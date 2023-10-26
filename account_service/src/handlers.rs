@@ -1,11 +1,11 @@
-use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use argon2::{
     password_hash::{rand_core::OsRng, SaltString},
     Argon2, PasswordHash, PasswordHasher, PasswordVerifier,
 };
 use poem::{
-    error::{InternalServerError, NotFound, NotFoundError, Unauthorized},
+    error::{InternalServerError, NotFoundError},
     Result,
 };
 use poem_openapi::{
@@ -120,21 +120,22 @@ impl Api {
                     &self.encode_key,
                 )
                 .map_err(InternalServerError)?;
-                return Ok(AuthResponse::Ok(Json(token)));
+                Ok(AuthResponse::Ok(Json(token)))
             }
             // Database unique violation when email or username already exists
             Err(sqlx::Error::Database(err))
                 if err.kind() == sqlx::error::ErrorKind::UniqueViolation =>
             {
-                return Ok(AuthResponse::Conflict);
+                Ok(AuthResponse::Conflict)
             }
-            Err(err) => return Err(InternalServerError(err)),
-        };
+            Err(err) => Err(InternalServerError(err)),
+        }
     }
 
     #[oai(path = "/login", method = "post")]
     async fn login(&self, body: Json<AuthRequest>) -> Result<RegisterResponse> {
-        let account = sqlx::query!(
+        let account: Account = sqlx::query_as!(
+            Account,
             "SELECT * FROM account WHERE email = $1",
             body.email.to_string()
         )

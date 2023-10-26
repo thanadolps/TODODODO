@@ -20,7 +20,7 @@ use lapin::{options::*, types::FieldTable, Connection, ConnectionProperties};
 struct Env {
     port: u16,
     database_url: String,
-    notifer_url: String,
+    amqp_addr: String,
     performance_url: String,
 }
 
@@ -67,11 +67,8 @@ async fn main() -> color_eyre::Result<()> {
         .with(middleware::CatchPanic::default());
 
     // Watch for deadline
-
-    let addr = std::env::var("AMQP_ADDR").unwrap_or_else(|_| "amqp://127.0.0.1:5672/%2f".into());
-
-    async_global_executor::block_on(async {
-        let conn = Connection::connect(&addr, ConnectionProperties::default())
+    tokio::spawn(async move {
+        let conn = Connection::connect(&env.amqp_addr, ConnectionProperties::default())
             .await
             .unwrap();
 
