@@ -12,12 +12,9 @@ use poem_openapi::OpenApiService;
 use sqlx::postgres::PgPool;
 use tracing::info;
 
-use gengrpc::{notification::NotifierClient, performance::PerformanceClient};
+use gengrpc::performance::PerformanceClient;
 
-use lapin::{
-    options::*, publisher_confirm::Confirmation, types::FieldTable, BasicProperties, Connection,
-    ConnectionProperties, Result,
-};
+use lapin::{options::*, types::FieldTable, Connection, ConnectionProperties};
 
 #[derive(serde::Deserialize, Debug)]
 struct Env {
@@ -46,7 +43,6 @@ async fn main() -> color_eyre::Result<()> {
     sqlx::migrate!("./migrations").run(&pool).await?;
 
     // gRPC clients
-    let notifier = NotifierClient::new(ClientConfig::builder().uri(env.notifer_url).build()?);
     let performance =
         PerformanceClient::new(ClientConfig::builder().uri(env.performance_url).build()?);
 
@@ -99,8 +95,7 @@ async fn main() -> color_eyre::Result<()> {
 
         tokio::spawn(noti::watch_notification_task(
             pool,
-            notifier,
-            Duration::from_secs(60),
+            Duration::from_secs(10),
             Duration::from_secs(30 * 60),
             channel,
         ));

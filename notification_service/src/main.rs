@@ -9,7 +9,8 @@ use lapin::{
 use serde::Deserialize;
 use tracing::info;
 
-// use gengrpc::notification::{Notifier, NotifierServer};
+use time::OffsetDateTime;
+
 use webhook::client::WebhookClient;
 
 struct NotificationService;

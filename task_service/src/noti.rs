@@ -1,4 +1,3 @@
-use gengrpc::notification::{NotificationDetail, NotifierClient};
 use lapin::{
     options::*, publisher_confirm::Confirmation, types::FieldTable, BasicProperties, Channel,
     Connection, ConnectionProperties, Result,
@@ -15,7 +14,6 @@ use tokio::time::MissedTickBehavior;
 /// Perodically check for deadline from database to send them notifier service.
 pub async fn watch_notification_task(
     pool: PgPool,
-    notifier: NotifierClient,
     check_period: Duration,
     lead_time: Duration,
     channel: Channel,
