@@ -1,7 +1,8 @@
 mod handlers;
+mod jwt;
 
 use color_eyre::eyre::Context;
-use jsonwebtoken::EncodingKey;
+use jsonwebtoken::{DecodingKey, EncodingKey};
 use poem::{listener::TcpListener, middleware, EndpointExt, Route, Server};
 use poem_openapi::OpenApiService;
 use serde::Deserialize;
@@ -34,9 +35,16 @@ async fn main() -> color_eyre::Result<()> {
 
     // JWT
     let encode_key = EncodingKey::from_base64_secret(env.jwt_secret.as_str())?;
+    let decode_key = DecodingKey::from_base64_secret(env.jwt_secret.as_str())?;
 
     // Handler
-    let handler = handlers::Api { pool, encode_key };
+    let handler = (
+        handlers::account::Api {
+            pool: pool.clone(),
+            encode_key,
+        },
+        handlers::community::Api { pool },
+    );
 
     // OpenAPI
     let api_service = OpenApiService::new(handler, "TODODODO - Task Service", "1.0")
@@ -50,7 +58,8 @@ async fn main() -> color_eyre::Result<()> {
         .nest("/docs", ui)
         .nest("/docs-json", spec)
         .with(middleware::Cors::default())
-        .with(middleware::CatchPanic::default());
+        .with(middleware::CatchPanic::default())
+        .data(decode_key);
 
     // Start server
     let ip = format!("0.0.0.0:{}", env.port);
