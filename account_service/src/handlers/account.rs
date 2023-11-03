@@ -31,8 +31,8 @@ enum AuthResponse {
     /// Returns JWT token
     #[oai(status = 200)]
     Ok(PlainText<String>),
-    #[oai(status = 409)]
-    Conflict,
+    #[oai(status = 401)]
+    Unauthorized,
 }
 
 #[derive(Object)]
@@ -49,8 +49,8 @@ enum RegisterResponse {
     /// Returns JWT token
     #[oai(status = 200)]
     Ok(PlainText<String>),
-    #[oai(status = 401)]
-    Unauthorized,
+    #[oai(status = 409)]
+    Conflict,
 }
 
 struct Account {
@@ -71,7 +71,7 @@ pub struct Api {
 impl Api {
     /// Register account
     #[oai(path = "/register", method = "post")]
-    async fn register(&self, body: Json<RegisterRequest>) -> Result<AuthResponse> {
+    async fn register(&self, body: Json<RegisterRequest>) -> Result<RegisterResponse> {
         let salt = SaltString::generate(&mut OsRng);
         let password_hash = Argon2::default()
             .hash_password(body.password.as_bytes(), &salt)
@@ -96,13 +96,13 @@ impl Api {
                     &self.encode_key,
                 )
                 .map_err(InternalServerError)?;
-                Ok(AuthResponse::Ok(PlainText(token)))
+                Ok(RegisterResponse::Ok(PlainText(token)))
             }
             // Database unique violation when email or username already exists
             Err(sqlx::Error::Database(err))
                 if err.kind() == sqlx::error::ErrorKind::UniqueViolation =>
             {
-                Ok(AuthResponse::Conflict)
+                Ok(RegisterResponse::Conflict)
             }
             Err(err) => Err(InternalServerError(err)),
         }
@@ -110,7 +110,7 @@ impl Api {
 
     /// Login to account
     #[oai(path = "/login", method = "post")]
-    async fn login(&self, body: Json<AuthRequest>) -> Result<RegisterResponse> {
+    async fn login(&self, body: Json<AuthRequest>) -> Result<AuthResponse> {
         let account: Account = sqlx::query_as!(
             Account,
             "SELECT * FROM account WHERE email = $1",
@@ -126,13 +126,13 @@ impl Api {
             &PasswordHash::new(&account.password_hash).unwrap(),
         ) {
             tracing::warn!("Failed to verify password: {}", err);
-            return Ok(RegisterResponse::Unauthorized);
+            return Ok(AuthResponse::Unauthorized);
         }
 
         let claims = jwt::Claims::new(account.id);
         let token =
             jsonwebtoken::encode(&jsonwebtoken::Header::default(), &claims, &self.encode_key)
                 .map_err(InternalServerError)?;
-        Ok(RegisterResponse::Ok(PlainText(token)))
+        Ok(AuthResponse::Ok(PlainText(token)))
     }
 }
