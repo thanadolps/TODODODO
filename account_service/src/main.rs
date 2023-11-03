@@ -12,6 +12,8 @@ struct Env {
     port: u16,
     database_url: String,
     jwt_secret: String,
+
+    railway_public_domain: Option<String>,
 }
 
 #[tokio::main]
@@ -39,8 +41,13 @@ async fn main() -> color_eyre::Result<()> {
     let handler = handlers::Api { pool, encode_key };
 
     // OpenAPI
-    let api_service = OpenApiService::new(handler, "TODODODO - Task Service", "1.0")
+    let mut api_service = OpenApiService::new(handler, "TODODODO - Task Service", "1.0")
         .server(format!("http://localhost:{}", env.port));
+    if let Some(domain) = env.railway_public_domain {
+        tracing::info!("Detected Railway domain: {}", domain);
+        api_service = api_service.server(format!("https://{}", domain));
+    }
+
     let ui = api_service.openapi_explorer();
     let spec = api_service.spec_endpoint();
 
