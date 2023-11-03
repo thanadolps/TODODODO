@@ -36,3 +36,8 @@ new-service:
 	echo "  $(name):\n    shell: cd $(name) && sqlx migrate run && cargo watch -x \"run -p $(name)\"" >> mprocs.yaml
 	# Insert the new service name into Cargo.toml
 	sed -i '4i\    "$(name)",' Cargo.toml
+
+.PHONY: prepare-all
+prepare-all:
+	# Prepare sqlx for offline used on all services with a .env file containing DATABASE_URL
+	find . -type d -name postgres-data -prune -o -type f -name .env -exec grep -q "DATABASE_URL" {} \; -exec sh -c 'echo "Preparing $$(dirname "{}")" && cd "$$(dirname "{}")" && cargo sqlx prepare && echo "Finished $$(dirname "{}")"' \;
