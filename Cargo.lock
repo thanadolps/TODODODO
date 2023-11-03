@@ -17,6 +17,7 @@ dependencies = [
  "poem-openapi",
  "serde",
  "sqlx",
+ "thiserror",
  "time",
  "tokio",
  "tracing",

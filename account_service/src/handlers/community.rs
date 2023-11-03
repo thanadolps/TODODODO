@@ -1,20 +1,10 @@
 use poem::{error::InternalServerError, http::StatusCode, Error, Result};
-use poem_openapi::{param::Path, payload::Json, Object, OpenApi};
+use poem_openapi::{param::Path, payload::Json, OpenApi};
 use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::jwt::JWTAuth;
-
-#[derive(Object)]
-struct Community {
-    #[oai(read_only)]
-    id: Uuid,
-    name: String,
-    description: Option<String>,
-    is_private: bool,
-    #[oai(read_only)]
-    owner_id: Uuid,
-}
+use crate::models::Community;
 
 pub struct Api {
     pub pool: PgPool,
@@ -22,7 +12,7 @@ pub struct Api {
 
 #[OpenApi(tag = "super::Tags::Community")]
 impl Api {
-    /// Search communities
+    /// Search public communities
     #[oai(path = "/community", method = "get")]
     async fn search_community(&self) -> Result<Json<Vec<Community>>> {
         // let owner_id = token.0.sub;
@@ -102,9 +92,39 @@ impl Api {
         Ok(Json(communities))
     }
 
-    /// Join community
+    /// Join public community
+    ///
+    /// Join user to a community. If the community is private, the user must be the owner.
+    /// (use invite code to join others private community)
     #[oai(path = "/community/:id/member", method = "post")]
     async fn join_community(&self, Path(id): Path<Uuid>, JWTAuth(claim): JWTAuth) -> Result<()> {
+        let user_id = claim.sub;
+
+        let community = get_community(&self.pool, id)
+            .await
+            .map_err(InternalServerError)?;
+
+        match community {
+            None => {
+                return Err(Error::from_string(
+                    "The community does not exist",
+                    StatusCode::NOT_FOUND,
+                ))
+            }
+            // reject if community is private and user is not owner
+            Some(Community {
+                is_private: true,
+                owner_id,
+                ..
+            }) if owner_id != user_id => {
+                return Err(Error::from_string(
+                    "The community is private (invite-only)",
+                    StatusCode::FORBIDDEN,
+                ))
+            }
+            _ => {}
+        }
+
         sqlx::query!(
             "
             INSERT INTO user_join_community (account_id, community_id) VALUES ($1, $2)
@@ -142,4 +162,10 @@ impl Api {
 
         Ok(())
     }
+}
+
+async fn get_community(pool: &PgPool, id: Uuid) -> sqlx::Result<Option<Community>> {
+    sqlx::query_as!(Community, "SELECT * FROM community WHERE id = $1", id)
+        .fetch_optional(pool)
+        .await
 }

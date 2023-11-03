@@ -1,5 +1,6 @@
 mod handlers;
 mod jwt;
+mod models;
 
 use color_eyre::eyre::Context;
 use jsonwebtoken::{DecodingKey, EncodingKey};
@@ -43,7 +44,8 @@ async fn main() -> color_eyre::Result<()> {
             pool: pool.clone(),
             encode_key,
         },
-        handlers::community::Api { pool },
+        handlers::community::Api { pool: pool.clone() },
+        handlers::invite_code::Api { pool },
     );
 
     // OpenAPI

@@ -2,10 +2,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use jsonwebtoken::{DecodingKey, Validation};
 use poem::{error::Unauthorized, http::StatusCode, Error, Request, Result};
-use poem_openapi::{
-    auth::{Basic, Bearer},
-    SecurityScheme,
-};
+use poem_openapi::{auth::Bearer, SecurityScheme};
 use serde::{Deserialize, Serialize};
 
 use uuid::Uuid;
@@ -55,7 +52,6 @@ async fn verify_bearer(req: &Request, bearer: Bearer) -> Result<Claims> {
         StatusCode::INTERNAL_SERVER_ERROR,
     ))?;
 
-    dbg!(&bearer.token);
     let decoded = jsonwebtoken::decode::<Claims>(&bearer.token, decode_key, &Validation::default())
         .map_err(Unauthorized)?;
 
