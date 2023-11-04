@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO performance (user_id, combo, best_record)\n            VALUES ($1, 1, 1)\n            ON CONFLICT (user_id)\n            DO UPDATE SET combo = performance.combo + 1, best_record = GREATEST(performance.combo + 1, performance.best_record);\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "7c19d8cea35017b1cffad447e7b2ba5a597557e3f9f2950e2666a50cf45b3558"
+}
