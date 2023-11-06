@@ -1,0 +1,47 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            WITH inserted AS (\n                INSERT INTO user_join_community (account_id, community_id)\n                SELECT \n                    $1 AS account_id, \n                    community_id\n                FROM invite_code i\n                WHERE i.id = $2\n                RETURNING community_id \n            )\n            SELECT c.* FROM inserted JOIN community c ON c.id = inserted.community_id;\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "is_private",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 4,
+        "name": "owner_id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "7f7170db75a03353ecdd5bdc7fb0fac355cd446f166baf4288f24d2dc26f54bf"
+}
