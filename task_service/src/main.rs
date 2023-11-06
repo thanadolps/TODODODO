@@ -22,6 +22,8 @@ struct Env {
     database_url: String,
     amqp_addr: String,
     performance_url: String,
+    #[serde(alias = "railway_public_domain")]
+    public_domain: Option<String>,
 }
 
 #[tokio::main]
@@ -38,6 +40,8 @@ async fn main() -> color_eyre::Result<()> {
     }
     tracing_subscriber::fmt::init();
 
+    tracing::info!(?env, "Environment Variable");
+
     // Setup database
     let pool = PgPool::connect(&env.database_url).await?;
     sqlx::migrate!("./migrations").run(&pool).await?;
@@ -53,8 +57,17 @@ async fn main() -> color_eyre::Result<()> {
     };
 
     // OpenAPI
-    let api_service = OpenApiService::new(handler, "TODODODO - Task Service", "1.0")
-        .server(format!("http://localhost:{}", env.port));
+    let server_url = if let Some(domain) = env.public_domain {
+        if domain.contains("://") {
+            format!("{}:{}", domain, env.port)
+        } else {
+            format!("https://{}:{}", domain, env.port)
+        }
+    } else {
+        format!("http://localhost:{}", env.port)
+    };
+    let api_service =
+        OpenApiService::new(handler, "TODODODO - Task Service", "1.0").server(server_url);
     let ui = api_service.openapi_explorer();
     let spec = api_service.spec_endpoint();
 

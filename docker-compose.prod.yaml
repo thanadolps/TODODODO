@@ -1,0 +1,100 @@
+version: "3.0"
+services:
+  dbts:
+    image: "timescale/timescaledb:latest-pg14"
+    ports:
+      - "5306:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - ./postgres-data:/var/lib/postgresql/data
+      # https://cadu.dev/creating-a-docker-image-with-database-preloaded/
+      - ./docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: "rabbitmq:3.12-management"
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    healthcheck:
+      test: rabbitmq-diagnostics check_port_connectivity
+      interval: 1s
+      timeout: 3s
+      retries: 30
+
+  account:
+    image: "debian"
+    working_dir: "/app"
+    volumes:
+      - "./account_service:/app"
+    command: "./account_service"
+    environment:
+      - "PUBLIC_DOMAIN=${PUBLIC_DOMAIN}"
+      - "PORT=8002"
+      - "DATABASE_URL=postgresql://account:password@dbts:5432/postgres?search_path=account"
+      - "JWT_SECRET=PhyQT1hMf0dRtc3yBRC+g87+bA1LKnwt2YnvKU7+Ens="
+    ports:
+      - "8002:8002"
+    depends_on:
+      dbts:
+        condition: "service_healthy"
+
+  notification:
+    image: "debian"
+    working_dir: "/app"
+    volumes:
+      - "./notification_service:/app"
+    command: "./notification_service"
+    environment:
+      - "PUBLIC_DOMAIN=${PUBLIC_DOMAIN}"
+      - "AMQP_ADDR=amqp://rabbitmq:5672/%2f"
+      - "WEBHOOK_URL=https://discord.com/api/webhooks/1166039146989629563/Rylu9HS5c34vNSDMVY9LyhukJLtvV09-3MlN_QmsrGKQ-KFbIQd6E_aFZDqMSdlAqOgC"
+    depends_on:
+      rabbitmq:
+        condition: "service_healthy"
+
+  task:
+    image: "debian"
+    working_dir: "/app"
+    volumes:
+      - "./task_service:/app"
+    command: "./task_service"
+    environment:
+      - "PUBLIC_DOMAIN=${PUBLIC_DOMAIN}"
+      - "PORT=8004"
+      - "DATABASE_URL=postgresql://task:password@dbts:5432/postgres?search_path=task"
+      - "AMQP_ADDR=amqp://rabbitmq:5672/%2f"
+      - "PERFORMANCE_URL=http://viz:8000"
+    ports:
+      - "8004:8004"
+    depends_on:
+      dbts:
+        condition: "service_healthy"
+      rabbitmq:
+        condition: "service_healthy"
+  
+  viz:
+    image: "debian"
+    working_dir: "/app"
+    volumes:
+      - "./viz_service:/app"
+    command: "./viz_service"
+    restart: always
+    environment:
+      - "PUBLIC_DOMAIN=${PUBLIC_DOMAIN}"
+      - "PORT=8003"
+      - "DATABASE_URL=postgresql://score:password@dbts:5432/postgres?search_path=score"
+    ports:
+      - "8003:8003"
+    depends_on:
+      dbts:
+        condition: "service_healthy"

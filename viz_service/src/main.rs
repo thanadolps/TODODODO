@@ -68,6 +68,7 @@ async fn main() -> color_eyre::Result<()> {
 
     // Setup database
     let pool = PgPool::connect(&env.database_url).await?;
+    sqlx::migrate!("./migrations").run(&pool).await?;
 
     let service = PerformanceService { pool };
     Server::new(TcpListener::bind(format!("0.0.0.0:{}", env.port)))
