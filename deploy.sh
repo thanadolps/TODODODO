@@ -9,11 +9,6 @@ SERVICES=("account_service" "notification_service" "task_service" "viz_service")
 
 echo "Building.."
 cargo build --release
-echo "Stripping.."
-for service in "${SERVICES[@]}"; do
-  strip "./target/release/$service"
-done
-
 
 echo "Stopping docker compose on server..."
 ssh "$USER@$ADDRESS" "cd app && docker compose down"
