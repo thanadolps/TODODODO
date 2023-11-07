@@ -1,30 +1,5 @@
 version: "3.0"
 
-x-kong-config:
-  &kong-env
-  KONG_DATABASE: ${KONG_DATABASE:-off}
-  # KONG_DATABASE: postgres
-  KONG_PG_DATABASE: ${KONG_PG_DATABASE:-kong}
-  KONG_PG_HOST: db
-  KONG_PG_USER: ${KONG_PG_USER:-kong}
-  KONG_PG_PASSWORD_FILE: /run/secrets/kong_postgres_password
-
-volumes:
-  kong_data: {}
-  kong_prefix_vol:
-    driver_opts:
-      type: tmpfs
-      device: tmpfs
-  kong_tmp_vol:
-    driver_opts:
-      type: tmpfs
-      device: tmpfs
-
-networks:
-  kong-net:
-    # external: true
-    # # https://stackoverflow.com/questions/70447514/can-i-set-up-a-docker-compose-configuration-with-no-networks
-
 services:
   dbts:
     image: "timescale/timescaledb:latest-pg14"
@@ -57,6 +32,28 @@ services:
       - POSTGRES_PASSWORD=kong
     volumes:
       - "db-data-kong-postgres:/var/lib/postgresql/data"
+  
+  mongodb:
+    image: mongo
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+      # MONGO_INITDB_DATABASE: db
+    volumes:
+      - "db-data-kong-mongo:/var/lib/mongo/data"
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+
+  # mongo-express:
+  #   image: mongo-express
+  #   restart: always
+  #   ports:
+  #     - 9281:8081
+  #   environment:
+  #     ME_CONFIG_MONGODB_ADMINUSERNAME: root
+  #     ME_CONFIG_MONGODB_ADMINPASSWORD: example
+  #     ME_CONFIG_MONGODB_URL: mongodb://root:example@mongo:27017/
 
   kong-migrations:
     image: kong
@@ -105,10 +102,21 @@ services:
       - kong:kong
     container_name: konga
     environment:
-      - NODE_ENV=production
+      # - NODE_ENV=production 
+      - DB_URI=mongodb://root:example@mongo:27017/
+      - DB_ADAPTER=mongo
+      # - DB_HOST=mongo
+      # - DB_PORT=27017
+      # - DB_USER=root
+      # - DB_PASSWORD=example
+      # - DB_DATABASE=kong
+    depends_on:
+      mongodb:
+        condition: service_healthy
 
 volumes:
   db-data-kong-postgres:
+  db-data-kong-mongo:
 
 networks:
   default:
