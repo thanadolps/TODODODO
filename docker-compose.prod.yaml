@@ -62,6 +62,8 @@ services:
     ports:
       - "8005:8005"
     depends_on:
+      dbts:
+        condition: "service_healthy"
       rabbitmq:
         condition: "service_healthy"
 
