@@ -80,36 +80,26 @@ async fn main() -> color_eyre::Result<()> {
         .with(middleware::CatchPanic::default());
 
     // Watch for deadline
-    tokio::spawn(async move {
-        let conn = Connection::connect(&env.amqp_addr, ConnectionProperties::default())
-            .await
-            .unwrap();
-
-        info!("Task Service CONNECTED!");
-
-        let channel = conn.create_channel().await.unwrap();
-
-        //send channel into noti.rs
-
-        // Declare a queue for sending tasks.
-        let task_queue = channel
-            .queue_declare(
-                "task_queue",
-                QueueDeclareOptions::default(),
-                FieldTable::default(),
-            )
-            .await
-            .unwrap();
-
-        info!(?task_queue, "Declared task queue");
-
-        tokio::spawn(noti::watch_notification_task(
-            pool,
-            Duration::from_secs(10),
-            Duration::from_secs(30 * 60),
-            channel,
-        ));
-    });
+    let conn = Connection::connect(&env.amqp_addr, ConnectionProperties::default())
+        .await
+        .context("Fail to connect to RabbitMQ")?;
+    info!("Task Service CONNECTED!");
+    let channel = conn.create_channel().await?;
+    // Declare a queue for sending tasks.
+    let task_queue = channel
+        .queue_declare(
+            "task_queue",
+            QueueDeclareOptions::default(),
+            FieldTable::default(),
+        )
+        .await?;
+    info!(?task_queue, "Declared task queue");
+    tokio::spawn(noti::watch_notification_task(
+        pool,
+        Duration::from_secs(10),
+        Duration::from_secs(30 * 60),
+        channel,
+    ));
 
     // Start server
     let ip = format!("0.0.0.0:{}", env.port);

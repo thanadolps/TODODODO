@@ -10,13 +10,14 @@ members = [
 
 [workspace.dependencies]
 poem = { version = "1.3.57", features = ["test"] }
-poem-openapi = { version = "3.0.3", features = ["openapi-explorer", "uuid", "time", "email"] }
+poem-openapi = { version = "3.0.3", features = ["openapi-explorer", "uuid", "time", "email", "url"] }
 poem-grpc = "0.2"
 # prost = "0.11"
 # prost-types = "0.11"
 
 uuid = { version = "1.4.1", features = ["v4", "serde"] }
 time = { version="0.3.28", features=["serde"] }
+url = "2.4"
 
 sqlx = { version = "0.7.1", features = ["runtime-tokio", "macros", "postgres", "uuid", "time"] }
 

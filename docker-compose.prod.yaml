@@ -41,7 +41,7 @@ services:
       - "PUBLIC_DOMAIN=${PUBLIC_DOMAIN}"
       - "PORT=8002"
       - "DATABASE_URL=postgresql://account:password@dbts:5432/postgres?search_path=account"
-      - "JWT_SECRET=PhyQT1hMf0dRtc3yBRC+g87+bA1LKnwt2YnvKU7+Ens="
+      - "JWT_SECRET=${JWT_SECRET}"
     ports:
       - "8002:8002"
     depends_on:
@@ -56,8 +56,11 @@ services:
     command: "./notification_service"
     environment:
       - "PUBLIC_DOMAIN=${PUBLIC_DOMAIN}"
+      - "DATABASE_URL=postgresql://notification:password@dbts:5432/postgres?search_path=notification"
+      - "PORT=8005"
       - "AMQP_ADDR=amqp://rabbitmq:5672/%2f"
-      - "WEBHOOK_URL=https://discord.com/api/webhooks/1166039146989629563/Rylu9HS5c34vNSDMVY9LyhukJLtvV09-3MlN_QmsrGKQ-KFbIQd6E_aFZDqMSdlAqOgC"
+    ports:
+      - "8005:8005"
     depends_on:
       rabbitmq:
         condition: "service_healthy"

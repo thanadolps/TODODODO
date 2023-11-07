@@ -1,5 +1,5 @@
 use crate::{dtos::{self}, models};
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{SystemTime};
 use gengrpc::performance::{PerformanceClient, StreakDetail};
 use poem::error::InternalServerError;
 use poem::Result;

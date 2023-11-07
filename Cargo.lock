@@ -1641,12 +1641,17 @@ dependencies = [
  "envy",
  "futures-lite",
  "lapin",
+ "poem",
+ "poem-openapi",
  "serde",
  "serde_json",
+ "sqlx",
  "time",
  "tokio",
  "tracing",
  "tracing-subscriber",
+ "url",
+ "uuid",
  "webhook",
 ]
 
@@ -2110,6 +2115,7 @@ dependencies = [
  "thiserror",
  "time",
  "tokio",
+ "url",
  "uuid",
 ]
 

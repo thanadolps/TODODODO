@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO webhook (user_id, url) VALUES ($1, $2) ON CONFLICT (user_id) DO UPDATE SET url = $2 RETURNING url",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "url",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "bcd8d1c2a8855b302e87e31166a2061e9626f7223b28d073cd926adf2c993955"
+}
