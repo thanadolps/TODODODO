@@ -1,11 +1,14 @@
 use color_eyre::eyre::Context;
-use gengrpc::performance::{Performance, PerformanceServer, StreakDetail};
+use gengrpc::performance::{
+    HabitDetail, Performance, PerformanceServer, RoutineDetail, StreakDetail,
+};
 use poem::{listener::TcpListener, Server};
 use poem_grpc::{Response, RouteGrpc, Status};
 use sqlx::PgPool;
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
-use uuid::Uuid;
+use time::OffsetDateTime;
 
+use uuid::Uuid;
 struct PerformanceService {
     pool: PgPool,
 }
@@ -42,6 +45,55 @@ impl Performance for PerformanceService {
             .execute(&self.pool)
             .await
             .unwrap();
+
+        Ok(Response::new(()))
+    }
+
+    async fn complete_routine(
+        &self,
+        request: poem_grpc::Request<RoutineDetail>,
+    ) -> Result<Response<()>, Status> {
+        let task_id = &request.task_id;
+        let complete_date = request.complete_date.as_ref().unwrap();
+
+        let converted_complete_date =
+            OffsetDateTime::from_unix_timestamp(complete_date.seconds).unwrap();
+
+        let uuid = Uuid::parse_str(task_id).unwrap();
+        // Add to table RoutineCompletion
+        sqlx::query!(
+            "INSERT INTO routine_completion VALUES($1,$2)",
+            uuid,
+            converted_complete_date
+        )
+        .execute(&self.pool)
+        .await
+        .unwrap();
+
+        Ok(Response::new(()))
+    }
+
+    async fn trigger_habit(
+        &self,
+        request: poem_grpc::Request<HabitDetail>,
+    ) -> Result<Response<()>, Status> {
+        let task_id = &request.task_id;
+        let positive = request.positive;
+        let triggered_at = request.triggered_at.as_ref().unwrap();
+
+        let converted_triggered_at =
+            OffsetDateTime::from_unix_timestamp(triggered_at.seconds).unwrap();
+        let uuid = Uuid::parse_str(task_id).unwrap();
+
+        sqlx::query!(
+            "INSERT INTO habit_history VALUES($1,$2,$3)",
+            uuid,
+            positive,
+            converted_triggered_at
+        )
+        .execute(&self.pool)
+        .await
+        .unwrap();
 
         Ok(Response::new(()))
     }
