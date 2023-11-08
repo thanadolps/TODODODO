@@ -8,6 +8,7 @@ use poem::{listener::TcpListener, middleware, EndpointExt, Route, Server};
 use poem_openapi::OpenApiService;
 use serde::Deserialize;
 use sqlx::postgres::PgPool;
+use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 
 #[derive(Deserialize, Debug)]
 struct Env {
@@ -16,6 +17,7 @@ struct Env {
     jwt_secret: String,
     #[serde(alias = "railway_public_domain")]
     public_domain: Option<String>,
+    log_mongo_url: Option<String>,
 }
 
 #[tokio::main]
@@ -30,7 +32,19 @@ async fn main() -> color_eyre::Result<()> {
     if std::env::var_os("RUST_LOG").is_none() {
         std::env::set_var("RUST_LOG", "poem=debug,info");
     }
-    tracing_subscriber::fmt::init();
+    tracing_subscriber::registry()
+        .with(fmt::layer().with_filter(EnvFilter::from_default_env()))
+        .with(if let Some(uri) = env.log_mongo_url.as_ref() {
+            Some(
+                tracing_mongo::MongoLogger::new(&uri, "log", "account_service")
+                    .await?
+                    .layer(),
+            )
+        } else {
+            tracing::warn!("No log_mongo_url envar set, not logging to MongoDB");
+            None
+        })
+        .init();
 
     // Setup database
     let pool = PgPool::connect(&env.database_url).await?;
@@ -76,6 +90,9 @@ async fn main() -> color_eyre::Result<()> {
 
     // Start server
     let ip = format!("0.0.0.0:{}", env.port);
-    Server::new(TcpListener::bind(ip)).run(route).await?;
+    Server::new(TcpListener::bind(ip))
+        .run(route)
+        .await
+        .with_context(|| format!("Fail to start server on port {:?}", env.port))?;
     Ok(())
 }

@@ -4,6 +4,7 @@ members = [
     "task_service",
     "notification_service",
     "gengrpc",
+    "tracing-mongo",
     "viz_service",
     "account_service"
 ]
@@ -27,7 +28,7 @@ envy = "0.4.2"
 serde = "1.0.188"
 tokio = { version = "1.32.0", features = ["macros", "rt-multi-thread"] }
 tracing = "0.1.37"
-tracing-subscriber = "0.3.17"
+tracing-subscriber = {version="0.3.17", features=["json", "env-filter"]}
 
 [profile.release]
 strip = true

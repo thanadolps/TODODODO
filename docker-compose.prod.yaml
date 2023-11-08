@@ -31,6 +31,11 @@ services:
       timeout: 3s
       retries: 30
 
+  mongo-log:
+    image: "mongodb/mongodb-community-server"
+    ports:
+      - "27017:27017"
+
   account:
     image: "debian"
     working_dir: "/app"
@@ -41,6 +46,7 @@ services:
       - "PUBLIC_DOMAIN=${PUBLIC_DOMAIN}"
       - "PORT=8002"
       - "DATABASE_URL=postgresql://account:password@dbts:5432/postgres?search_path=account"
+      - "LOG_MONGO_URL=mongodb://mongo-log:27017"
       - "JWT_SECRET=${JWT_SECRET}"
     ports:
       - "8002:8002"
@@ -57,6 +63,7 @@ services:
     environment:
       - "PUBLIC_DOMAIN=${PUBLIC_DOMAIN}"
       - "DATABASE_URL=postgresql://notification:password@dbts:5432/postgres?search_path=notification"
+      - "LOG_MONGO_URL=mongodb://mongo-log:27017"
       - "PORT=8005"
       - "AMQP_ADDR=amqp://rabbitmq:5672/%2f"
     ports:
@@ -77,6 +84,7 @@ services:
       - "PUBLIC_DOMAIN=${PUBLIC_DOMAIN}"
       - "PORT=8004"
       - "DATABASE_URL=postgresql://task:password@dbts:5432/postgres?search_path=task"
+      - "LOG_MONGO_URL=mongodb://mongo-log:27017"
       - "AMQP_ADDR=amqp://rabbitmq:5672/%2f"
       - "PERFORMANCE_URL=http://viz:8000"
     ports:
@@ -98,6 +106,7 @@ services:
       - "PUBLIC_DOMAIN=${PUBLIC_DOMAIN}"
       - "PORT=8003"
       - "DATABASE_URL=postgresql://score:password@dbts:5432/postgres?search_path=score"
+      - "LOG_MONGO_URL=mongodb://mongo-log:27017"
     ports:
       - "8003:8003"
     depends_on:

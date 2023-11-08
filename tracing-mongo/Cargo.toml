@@ -1,0 +1,13 @@
+[package]
+name = "tracing-mongo"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+mongodb = {version = "2.7.1", default-features = false, features = ["tokio-runtime"]}
+tracing = {workspace = true}
+tracing-subscriber = {workspace = true}
+tokio = {workspace = true}
+serde_json = "1.0.108"

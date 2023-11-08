@@ -30,3 +30,8 @@ services:
       interval: 1s
       timeout: 3s
       retries: 30
+  
+  mongo-log:
+    image: "mongodb/mongodb-community-server"
+    ports:
+      - "27017:27017"
