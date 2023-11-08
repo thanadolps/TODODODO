@@ -90,4 +90,7 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
             cd app
-            docker compose up -d
+            for i in {1..5}; do
+              docker compose up -d && break || sleep 5
+              echo "Retrying docker compose $i times"
+            done
