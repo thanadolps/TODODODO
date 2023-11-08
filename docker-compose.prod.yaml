@@ -15,7 +15,7 @@ services:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
 
   rabbitmq:
     image: "rabbitmq:3.12-management"
@@ -26,16 +26,20 @@ services:
       - RABBITMQ_DEFAULT_USER=guest
       - RABBITMQ_DEFAULT_PASS=guest
     healthcheck:
-      test: rabbitmq-diagnostics check_port_connectivity
-      interval: 1s
-      timeout: 3s
-      retries: 30
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   mongo-log:
     image: "mongodb/mongodb-community-server"
     ports:
       - "27017:27017"
-
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongo mongo:27017/test --quiets
+      interval: 5s
+      timeout: 5s
+      retries: 10
   account:
     image: "debian"
     working_dir: "/app"
@@ -53,6 +57,11 @@ services:
     depends_on:
       dbts:
         condition: "service_healthy"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:$${PORT}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   notification:
     image: "debian"
@@ -73,6 +82,11 @@ services:
         condition: "service_healthy"
       rabbitmq:
         condition: "service_healthy"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:$${PORT}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   task:
     image: "debian"
@@ -94,6 +108,11 @@ services:
         condition: "service_healthy"
       rabbitmq:
         condition: "service_healthy"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:$${PORT}"]  
+      interval: 5s
+      timeout: 5s
+      retries: 10
   
   viz:
     image: "debian"
@@ -112,3 +131,8 @@ services:
     depends_on:
       dbts:
         condition: "service_healthy"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:$${PORT}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
