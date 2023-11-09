@@ -21,7 +21,8 @@ CREATE TABLE IF NOT EXISTS routine (
     description TEXT NOT NULL,
     checktime TIMESTAMPTZ NOT NULL, 
     typena TEXT NOT NULL ,    
-    user_id UUID NOT NULL
+    user_id UUID NOT NULL,
+    completed BOOL NOT NULL DEFAULT false
 );
 
 

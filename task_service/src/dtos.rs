@@ -39,4 +39,5 @@ pub struct Routine {
     pub checktime: Option<DateTime>,
     pub typena: String,
     pub user_id: Uuid,
+    pub completed: bool,
 }

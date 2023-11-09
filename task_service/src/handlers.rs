@@ -186,6 +186,36 @@ impl Api {
         }
     }
 
+    #[oai(path = "/habit/:id/increasescore", method = "put")]
+    /// Increase score to habit by id.
+    pub async fn increasescore(&self, Path(id): Path<Uuid>) -> Result<OptionalHabitResponse> {
+        let habit = sqlx::query_as!(models::Habit, "UPDATE habit SET score = score + 1 WHERE id = $1 RETURNING *", id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(InternalServerError)?;
+
+        match habit.map(dtos::Habit::from) {
+            Some(habit) => Ok(OptionalHabitResponse::Ok(Json(habit))),
+            None => Ok(OptionalHabitResponse::NotFound),
+        }
+    }
+
+    #[oai(path = "/habit/:id/decreasescore", method = "put")]
+    /// Decrease score to habit by id.
+    pub async fn decreasescore(&self, Path(id): Path<Uuid>) -> Result<OptionalHabitResponse> {
+        let habit = sqlx::query_as!(models::Habit, "UPDATE habit SET score = score - 1 WHERE id = $1 RETURNING *", id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(InternalServerError)?;
+
+        match habit.map(dtos::Habit::from) {
+            Some(habit) => Ok(OptionalHabitResponse::Ok(Json(habit))),
+            None => Ok(OptionalHabitResponse::NotFound),
+        }
+    }
+
+   
+
     #[oai(path = "/habit", method = "post")]
     /// Add a new habit.
     pub async fn add_habit(&self, Json(habit): Json<dtos::Habit>) -> Result<Json<dtos::Habit>> {
@@ -339,6 +369,24 @@ impl Api {
             Some(routine) => Ok(OptionalRoutineResponse::Ok(Json(routine))),
             None => Ok(OptionalRoutineResponse::NotFound),
         }
+    }
+
+    #[oai(path = "/rountine/:id/complete", method = "patch")]
+    /// Complete routine
+    pub async fn complete_routine(&self, Path(id): Path<Uuid>) -> Result<(OptionalRoutineResponse)> {
+
+        let routine = sqlx::query_as!(models::Routine, "
+        UPDATE routine SET completed = true WHERE id=$1 RETURNING *
+        ", id)
+            .fetch_optional(&self.pool) 
+            .await.map_err(InternalServerError)?;  
+
+            match routine.map(dtos::Routine::from) {
+                Some(routine) => Ok(OptionalRoutineResponse::Ok(Json(routine))),
+                None => Ok(OptionalRoutineResponse::NotFound),
+            }
+
+        
     }
 
     

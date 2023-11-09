@@ -2,6 +2,7 @@ mod dtos;
 mod handlers;
 mod models;
 mod noti;
+mod routine;
 
 use std::time::Duration;
 
@@ -10,6 +11,7 @@ use poem::{listener::TcpListener, middleware, EndpointExt, Route, Server};
 use poem_grpc::ClientConfig;
 use poem_openapi::OpenApiService;
 use sqlx::postgres::PgPool;
+
 use tracing::info;
 
 use gengrpc::performance::PerformanceClient;
@@ -91,10 +93,15 @@ async fn main() -> color_eyre::Result<()> {
         info!(?task_queue, "Declared task queue");
 
         tokio::spawn(noti::watch_notification_task(
-            pool,
+            pool.clone(),
             Duration::from_secs(10),
             Duration::from_secs(30 * 60),
             channel,
+        ));
+
+        tokio::spawn(routine::refresh_routine_task(
+            pool.clone(),
+            Duration::from_secs(60),
         ));
     });
 
