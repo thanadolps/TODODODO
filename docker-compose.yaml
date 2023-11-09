@@ -1,30 +1,5 @@
 version: "3.0"
 
-x-kong-config:
-  &kong-env
-  KONG_DATABASE: ${KONG_DATABASE:-off}
-  # KONG_DATABASE: postgres
-  KONG_PG_DATABASE: ${KONG_PG_DATABASE:-kong}
-  KONG_PG_HOST: db
-  KONG_PG_USER: ${KONG_PG_USER:-kong}
-  KONG_PG_PASSWORD_FILE: /run/secrets/kong_postgres_password
-
-volumes:
-  kong_data: {}
-  kong_prefix_vol:
-    driver_opts:
-      type: tmpfs
-      device: tmpfs
-  kong_tmp_vol:
-    driver_opts:
-      type: tmpfs
-      device: tmpfs
-
-networks:
-  kong-net:
-    # external: true
-    # # https://stackoverflow.com/questions/70447514/can-i-set-up-a-docker-compose-configuration-with-no-networks
-
 services:
   dbts:
     image: "timescale/timescaledb:latest-pg14"
