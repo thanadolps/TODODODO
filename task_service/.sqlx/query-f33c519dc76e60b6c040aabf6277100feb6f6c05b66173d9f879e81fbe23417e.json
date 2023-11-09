@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE routine SET completed = false, checktime = NOW() WHERE \n            typena = 'weekly' AND completed = true AND \n            DATE_TRUNC('week', checktime) <= now() - interval '1 week'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "f33c519dc76e60b6c040aabf6277100feb6f6c05b66173d9f879e81fbe23417e"
+}

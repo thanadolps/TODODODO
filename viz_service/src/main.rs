@@ -3,6 +3,7 @@ use gengrpc::performance::{Performance, PerformanceServer, StreakDetail};
 use poem::{listener::TcpListener, Server};
 use poem_grpc::{Response, RouteGrpc, Status};
 use sqlx::PgPool;
+use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 use uuid::Uuid;
 
 struct PerformanceService {
@@ -50,6 +51,7 @@ impl Performance for PerformanceService {
 struct Env {
     port: u16,
     database_url: String,
+    log_mongo_url: Option<String>,
 }
 
 #[tokio::main]
@@ -64,15 +66,29 @@ async fn main() -> color_eyre::Result<()> {
     if std::env::var_os("RUST_LOG").is_none() {
         std::env::set_var("RUST_LOG", "poem=debug,info");
     }
-    tracing_subscriber::fmt::init();
+    tracing_subscriber::registry()
+        .with(fmt::layer().with_filter(EnvFilter::from_default_env()))
+        .with(if let Some(uri) = env.log_mongo_url.as_ref() {
+            Some(
+                tracing_mongo::MongoLogger::new(&uri, "log", "viz_service")
+                    .await?
+                    .layer(),
+            )
+        } else {
+            tracing::warn!("No log_mongo_url envar set, not logging to MongoDB");
+            None
+        })
+        .init();
 
     // Setup database
     let pool = PgPool::connect(&env.database_url).await?;
+    sqlx::migrate!("./migrations").run(&pool).await?;
 
     let service = PerformanceService { pool };
     Server::new(TcpListener::bind(format!("0.0.0.0:{}", env.port)))
         .run(RouteGrpc::new().add_service(PerformanceServer::new(service)))
-        .await?;
+        .await
+        .with_context(|| format!("Fail to start server on port {:?}", env.port))?;
 
     Ok(())
 }

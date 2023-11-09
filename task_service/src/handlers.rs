@@ -1,5 +1,5 @@
-use crate::{dtos, models};
-
+use crate::{dtos::{self}, models};
+use std::time::{SystemTime, UNIX_EPOCH};
 use gengrpc::performance::{PerformanceClient, StreakDetail};
 use poem::error::InternalServerError;
 use poem::Result;
@@ -15,6 +15,30 @@ pub enum OptionalTaskResponse {
     /// Specified task not found.
     NotFound,
 }
+
+#[derive(ApiResponse)]
+pub enum OptionalHabitResponse {
+    #[oai(status = 200)]
+    Ok(Json<dtos::Habit>),
+    #[oai(status = 404)]
+    /// Specified task not found.
+    NotFound,
+}
+
+#[derive(ApiResponse)]
+pub enum OptionalRoutineResponse {
+    #[oai(status = 200)]
+    Ok(Json<dtos::Routine>),
+    #[oai(status = 404)]
+    /// Specified task not found.
+    NotFound,
+}
+
+
+
+
+
+
 
 pub struct Api {
     pub pool: sqlx::PgPool,
@@ -138,4 +162,236 @@ impl Api {
             None => Ok(OptionalTaskResponse::NotFound),
         }
     }
+
+
+    #[oai(path = "/habit", method = "get")]
+    /// List all habits.
+    pub async fn list_habits(&self) -> Result<Json<Vec<dtos::Habit>>> {
+        let habits = sqlx::query_as!(models::Habit, "SELECT * FROM habit")
+            .fetch_all(&self.pool)
+            .await
+            .map_err(InternalServerError)?;
+
+        let dto_habits = habits.into_iter().map(dtos::Habit::from).collect();
+        Ok(Json(dto_habits))
+    }
+
+    #[oai(path = "/habit/:id", method = "get")]
+    /// Get a habit by id.
+    pub async fn get_habit(&self, Path(id): Path<Uuid>) -> Result<OptionalHabitResponse> {
+        let habit = sqlx::query_as!(models::Habit, "SELECT * FROM habit WHERE id = $1", id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(InternalServerError)?;
+
+        match habit.map(dtos::Habit::from) {
+            Some(habit) => Ok(OptionalHabitResponse::Ok(Json(habit))),
+            None => Ok(OptionalHabitResponse::NotFound),
+        }
+    }
+
+    #[oai(path = "/habit/:id/increasescore", method = "put")]
+    /// Increase score to habit by id.
+    pub async fn increasescore(&self, Path(id): Path<Uuid>) -> Result<OptionalHabitResponse> {
+        let habit = sqlx::query_as!(models::Habit, "UPDATE habit SET score = score + 1 WHERE id = $1 RETURNING *", id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(InternalServerError)?;
+
+        match habit.map(dtos::Habit::from) {
+            Some(habit) => Ok(OptionalHabitResponse::Ok(Json(habit))),
+            None => Ok(OptionalHabitResponse::NotFound),
+        }
+    }
+
+    #[oai(path = "/habit/:id/decreasescore", method = "put")]
+    /// Decrease score to habit by id.
+    pub async fn decreasescore(&self, Path(id): Path<Uuid>) -> Result<OptionalHabitResponse> {
+        let habit = sqlx::query_as!(models::Habit, "UPDATE habit SET score = score - 1 WHERE id = $1 RETURNING *", id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(InternalServerError)?;
+
+        match habit.map(dtos::Habit::from) {
+            Some(habit) => Ok(OptionalHabitResponse::Ok(Json(habit))),
+            None => Ok(OptionalHabitResponse::NotFound),
+        }
+    }
+
+   
+
+    #[oai(path = "/habit", method = "post")]
+    /// Add a new habit.
+    pub async fn add_habit(&self, Json(habit): Json<dtos::Habit>) -> Result<Json<dtos::Habit>> {
+        let habit = sqlx::query_as!(
+            models::Habit,
+            "INSERT INTO habit (title, description, score, user_id) VALUES ($1, $2, $3, $4) RETURNING *",
+            habit.title,
+            habit.description, 
+            0,
+            habit.user_id 
+        )
+        .fetch_one(&self.pool)
+        .await
+        .map_err(InternalServerError)?;
+
+        Ok(Json(dtos::Habit::from(habit)))
+    }
+
+
+    #[oai(path = "/habit/:id", method = "put")]
+    /// Update a habit by id.
+    pub async fn update_habit(
+        &self,
+        Path(id): Path<Uuid>,
+        Json(habit): Json<dtos::Habit>,
+    ) -> Result<OptionalHabitResponse> {
+        let habit = sqlx::query_as!(
+            models::Habit,
+            "UPDATE habit SET title = $1, description = $2, score = $3 WHERE id = $4 RETURNING *",
+            habit.title,
+            habit.description,
+            habit.score,
+            id
+        )
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(InternalServerError)?;
+
+        match habit.map(dtos::Habit::from) {
+            Some(habit) => Ok(OptionalHabitResponse::Ok(Json(habit))),
+            None => Ok(OptionalHabitResponse::NotFound),
+        } 
+    }
+
+    #[oai(path = "/habit/:id", method = "delete")]
+    /// Delete a habit by id.
+    pub async fn delete_habit(&self, Path(id): Path<Uuid>) -> Result<OptionalHabitResponse> {
+        let habit = sqlx::query_as!(
+            models::Habit,
+            "DELETE FROM habit WHERE id = $1 RETURNING *",
+            id,
+        )
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(InternalServerError)?;
+
+        match habit.map(dtos::Habit::from) {
+            Some(habit) => Ok(OptionalHabitResponse::Ok(Json(habit))),
+            None => Ok(OptionalHabitResponse::NotFound),
+        }
+    }
+
+
+
+    #[oai(path = "/routine", method = "get")]
+    /// List all routines.
+    pub async fn list_routines(&self) -> Result<Json<Vec<dtos::Routine>>> {
+        let routines = sqlx::query_as!(models::Routine, "SELECT * FROM routine")
+            .fetch_all(&self.pool)
+            .await
+            .map_err(InternalServerError)?;
+
+        let dto_routines = routines.into_iter().map(dtos::Routine::from).collect();
+        Ok(Json(dto_routines))
+    }
+
+    #[oai(path = "/routine/:id", method = "get")]
+    /// Get a routine by id.
+    pub async fn get_routine(&self, Path(id): Path<Uuid>) -> Result<OptionalRoutineResponse> {
+        let routine = sqlx::query_as!(models::Routine, "SELECT * FROM routine WHERE id = $1", id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(InternalServerError)?;
+
+        match routine.map(dtos::Routine::from) {
+            Some(routine) => Ok(OptionalRoutineResponse::Ok(Json(routine))),
+            None => Ok(OptionalRoutineResponse::NotFound),
+        }
+    }
+
+    #[oai(path = "/routine", method = "post")]
+    /// Add a new routine.
+    pub async fn add_routine(&self, Json(routine): Json<dtos::Routine>) -> Result<Json<dtos::Routine>> {
+        let current_time =  SystemTime::now(); // Get the current time in UTC
+
+        let routine = sqlx::query_as!(
+            models::Routine,
+            "INSERT INTO routine (title, description, checktime, typena, user_id) VALUES ($1, $2,$3, $4,$5) RETURNING *",
+            routine.title,
+            routine.description, 
+           routine.checktime,
+            routine.typena,
+            routine.user_id 
+        )
+        .fetch_one(&self.pool)
+        .await
+        .map_err(InternalServerError)?;
+
+        Ok(Json(dtos::Routine::from(routine)))
+    }
+
+
+    #[oai(path = "/routine/:id", method = "put")]
+    /// Update a routine by id.
+    pub async fn update_routine(
+        &self,
+        Path(id): Path<Uuid>,
+        Json(routine): Json<dtos::Routine>,
+    ) -> Result<OptionalRoutineResponse> {
+        let routine = sqlx::query_as!(
+            models::Routine,
+            "UPDATE routine SET title = $1, description = $2, typena = $3 WHERE id = $4 RETURNING *",
+            routine.title,
+            routine.description,
+            routine.typena,
+            id
+        )
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(InternalServerError)?;
+
+        match routine.map(dtos::Routine::from) {
+            Some(routine) => Ok(OptionalRoutineResponse::Ok(Json(routine))),
+            None => Ok(OptionalRoutineResponse::NotFound),
+        } 
+    }
+
+    #[oai(path = "/routine/:id", method = "delete")]
+    /// Delete a routine by id.
+    pub async fn delete_routine(&self, Path(id): Path<Uuid>) -> Result<OptionalRoutineResponse> {
+        let routine = sqlx::query_as!(
+            models::Routine,
+            "DELETE FROM routine WHERE id = $1 RETURNING *",
+            id,
+        )
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(InternalServerError)?;
+
+        match routine.map(dtos::Routine::from) {
+            Some(routine) => Ok(OptionalRoutineResponse::Ok(Json(routine))),
+            None => Ok(OptionalRoutineResponse::NotFound),
+        }
+    }
+
+    #[oai(path = "/rountine/:id/complete", method = "patch")]
+    /// Complete routine
+    pub async fn complete_routine(&self, Path(id): Path<Uuid>) -> Result<(OptionalRoutineResponse)> {
+
+        let routine = sqlx::query_as!(models::Routine, "
+        UPDATE routine SET completed = true WHERE id=$1 RETURNING *
+        ", id)
+            .fetch_optional(&self.pool) 
+            .await.map_err(InternalServerError)?;  
+
+            match routine.map(dtos::Routine::from) {
+                Some(routine) => Ok(OptionalRoutineResponse::Ok(Json(routine))),
+                None => Ok(OptionalRoutineResponse::NotFound),
+            }
+
+        
+    }
+
+    
 }

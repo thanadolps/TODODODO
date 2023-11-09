@@ -27,7 +27,7 @@ tracing = {workspace = true}
 tracing-subscriber = {workspace = true}
 
 gengrpc = {path = "../gengrpc"}
+tracing-mongo = {path = "../tracing-mongo"}
 
 serde_json = "1.0"
-futures-lite = "1.13.0"
 lapin = "2.0"

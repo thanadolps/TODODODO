@@ -1,0 +1,98 @@
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+name: Deploy
+
+
+jobs:
+  build_and_deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - run: sudo apt-get install protobuf-compiler
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            task_service
+            notification_service
+            gengrpc
+            viz_service
+            account_service
+      - name: Build
+        if: steps.cache-dependencies.outputs.cache-hit != 'true'
+        uses: actions-rs/cargo@v1
+        env:
+          SQLX_OFFLINE: true
+        with:
+          command: build
+          args: --release
+      - name: Upload docker compose server
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USERNAME }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          source: "docker-compose.prod.yaml,docker-entrypoint-initdb.d/*"
+          target: "app"
+      - name: Stop remote docker compose
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USERNAME }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            cd app
+            mv -f "docker-compose.prod.yaml" "docker-compose.yaml"
+            docker compose down
+      - name: Upload binary to server
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USERNAME }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          source: "target/release/*_service"
+          target: "app/services"
+      - name: Organize remote service
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USERNAME }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            cd app
+            mkdir -p services
+            mv -f services/target/release/* services
+            chmod +x services/*
+
+            #  move all files in folder service into the folder with the same name as the file
+            for file in services/*; do
+              if [ -f "$file" ]; then
+                  filename=$(basename "$file")
+                  foldername="${filename%.*}"
+                  mkdir -p "$foldername"
+                  mv -f "$file" "$foldername"
+              fi
+            done
+
+      - name: Start remote docker compose
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USERNAME }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            cd app
+            docker compose up -d
+            sleep 10
+            docker compose up -d
+            sleep 10
+            docker compose ps
+            sleep 2

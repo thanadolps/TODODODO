@@ -29,7 +29,7 @@ pub async fn watch_notification_task(
 
         let result = sqlx::query!(
             r#"
-        SELECT id, title, description, deadline as "deadline!"
+        SELECT id, user_id, title, description, deadline as "deadline!"
         FROM task
         WHERE deadline IS NOT NULL
         AND deadline BETWEEN NOW() + $1 AND NOW() + $1 + $2
@@ -61,6 +61,7 @@ pub async fn watch_notification_task(
                     // Serialize the Request to JSON.
 
                     let task = json!({
+                        "user_id": task.user_id,
                         "task_id": task.id.to_string(),
                         "title": task.title,
                         "description": task.description,

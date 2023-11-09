@@ -12,6 +12,12 @@ services:
       - ./postgres-data:/var/lib/postgresql/data
       # https://cadu.dev/creating-a-docker-image-with-database-preloaded/
       - ./docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   rabbitmq:
     image: "rabbitmq:3.12-management"
     ports:
@@ -20,6 +26,21 @@ services:
     environment:
       - RABBITMQ_DEFAULT_USER=guest
       - RABBITMQ_DEFAULT_PASS=guest
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+  
+  mongo-log:
+    image: "mongodb/mongodb-community-server"
+    ports:
+      - "27017:27017"
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongo mongo:27017/test --quiets
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   kong:
     image: kong
