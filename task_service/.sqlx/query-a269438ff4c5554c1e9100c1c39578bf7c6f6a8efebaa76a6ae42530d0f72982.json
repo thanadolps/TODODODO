@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE routine SET completed = false, checktime = NOW() WHERE \n            typena = 'monthly' AND completed = true AND \n            DATE_TRUNC('month', checktime) <= now() - interval '1 month'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "a269438ff4c5554c1e9100c1c39578bf7c6f6a8efebaa76a6ae42530d0f72982"
+}

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        SELECT id, title, description, deadline as \"deadline!\"\n        FROM task\n        WHERE deadline IS NOT NULL\n        AND deadline BETWEEN NOW() + $1 AND NOW() + $1 + $2\n        ",
+  "query": "UPDATE habit SET score = score - 1 WHERE id = $1 RETURNING *",
   "describe": {
     "columns": [
       {
@@ -20,22 +20,27 @@
       },
       {
         "ordinal": 3,
-        "name": "deadline!",
-        "type_info": "Timestamptz"
+        "name": "score",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "user_id",
+        "type_info": "Uuid"
       }
     ],
     "parameters": {
       "Left": [
-        "Interval",
-        "Interval"
+        "Uuid"
       ]
     },
     "nullable": [
       false,
       false,
       false,
-      true
+      false,
+      false
     ]
   },
-  "hash": "f2bb798520fda51626220c0fda3a996a72b5f6d971a4e14bc9d3a896d43cacce"
+  "hash": "31b1a1903e684722d658ee9d9030eed96006cd289dae4941049ec587e80795bf"
 }

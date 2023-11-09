@@ -32,12 +32,18 @@
         "ordinal": 5,
         "name": "user_id",
         "type_info": "Uuid"
+      },
+      {
+        "ordinal": 6,
+        "name": "completed",
+        "type_info": "Bool"
       }
     ],
     "parameters": {
       "Left": []
     },
     "nullable": [
+      false,
       false,
       false,
       false,

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE routine SET title = $1, description = $2, typena = $3 WHERE id = $4 RETURNING *",
+  "query": "\n        UPDATE routine SET completed = true WHERE id=$1 RETURNING *\n        ",
   "describe": {
     "columns": [
       {
@@ -41,9 +41,6 @@
     ],
     "parameters": {
       "Left": [
-        "Text",
-        "Text",
-        "Text",
         "Uuid"
       ]
     },
@@ -57,5 +54,5 @@
       false
     ]
   },
-  "hash": "48f6ae91fb8c02fd37c81b1cf86aa3db98c269c8448540d8881fac72380b043f"
+  "hash": "6506eb8f2d774371706843c8964e35da1437f3f75ba6ca82db88e17e0b169e1a"
 }
