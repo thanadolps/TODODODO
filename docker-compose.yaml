@@ -41,3 +41,17 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+
+  kong:
+    image: kong
+    environment:
+      - KONG_DATABASE=off
+      - KONG_DECLARATIVE_CONFIG=/kong/declarative/kong.yml
+    volumes:
+      - ./kong-config.yml:/kong/declarative/kong.yml
+    restart: on-failure
+    ports:
+      - 9100:8000
+      - 8443:8443
+      - 9101:8001
+      - 8444:8444

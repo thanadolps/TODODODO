@@ -1,0 +1,13 @@
+_format_version: "3.0"
+_transform: true
+
+# https://docs.konghq.com/gateway/latest/production/deployment-topologies/db-less-and-declarative-config/#declarative-configuration-format
+
+services:
+  - name: google_proxy
+    url: https://www.google.com
+    routes:
+      - name: google_route
+        paths:
+          - /google
+        strip_path: true
