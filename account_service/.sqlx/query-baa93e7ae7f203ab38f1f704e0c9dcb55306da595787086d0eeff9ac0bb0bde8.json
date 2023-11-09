@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO invite_code (community_id, expired_at)\n            VALUES ($1, $2)\n            RETURNING id, expired_at\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "expired_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      false,
+      true
+    ]
+  },
+  "hash": "baa93e7ae7f203ab38f1f704e0c9dcb55306da595787086d0eeff9ac0bb0bde8"
+}

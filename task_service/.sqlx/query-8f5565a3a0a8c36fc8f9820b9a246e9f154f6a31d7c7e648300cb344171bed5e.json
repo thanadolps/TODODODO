@@ -1,0 +1,49 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE habit SET title = $1, description = $2, score = $3 WHERE id = $4 RETURNING *",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "score",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "user_id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Int4",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "8f5565a3a0a8c36fc8f9820b9a246e9f154f6a31d7c7e648300cb344171bed5e"
+}

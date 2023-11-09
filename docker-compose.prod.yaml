@@ -1,0 +1,138 @@
+version: "3.0"
+services:
+  dbts:
+    image: "timescale/timescaledb:latest-pg14"
+    ports:
+      - "5306:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - ./postgres-data:/var/lib/postgresql/data
+      # https://cadu.dev/creating-a-docker-image-with-database-preloaded/
+      - ./docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  rabbitmq:
+    image: "rabbitmq:3.12-management"
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  mongo-log:
+    image: "mongodb/mongodb-community-server"
+    ports:
+      - "27017:27017"
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongo mongo:27017/test --quiets
+      interval: 5s
+      timeout: 5s
+      retries: 10
+  account:
+    image: "debian"
+    working_dir: "/app"
+    volumes:
+      - "./account_service:/app"
+    command: "./account_service"
+    environment:
+      - "PUBLIC_DOMAIN=${PUBLIC_DOMAIN}"
+      - "PORT=8002"
+      - "DATABASE_URL=postgresql://account:password@dbts:5432/postgres?search_path=account"
+      - "LOG_MONGO_URL=mongodb://mongo-log:27017"
+      - "JWT_SECRET=${JWT_SECRET}"
+    ports:
+      - "8002:8002"
+    depends_on:
+      dbts:
+        condition: "service_healthy"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:$${PORT}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  notification:
+    image: "debian"
+    working_dir: "/app"
+    volumes:
+      - "./notification_service:/app"
+    command: "./notification_service"
+    environment:
+      - "PUBLIC_DOMAIN=${PUBLIC_DOMAIN}"
+      - "DATABASE_URL=postgresql://notification:password@dbts:5432/postgres?search_path=notification"
+      - "LOG_MONGO_URL=mongodb://mongo-log:27017"
+      - "PORT=8005"
+      - "AMQP_ADDR=amqp://rabbitmq:5672/%2f"
+    ports:
+      - "8005:8005"
+    depends_on:
+      dbts:
+        condition: "service_healthy"
+      rabbitmq:
+        condition: "service_healthy"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:$${PORT}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  task:
+    image: "debian"
+    working_dir: "/app"
+    volumes:
+      - "./task_service:/app"
+    command: "./task_service"
+    environment:
+      - "PUBLIC_DOMAIN=${PUBLIC_DOMAIN}"
+      - "PORT=8004"
+      - "DATABASE_URL=postgresql://task:password@dbts:5432/postgres?search_path=task"
+      - "LOG_MONGO_URL=mongodb://mongo-log:27017"
+      - "AMQP_ADDR=amqp://rabbitmq:5672/%2f"
+      - "PERFORMANCE_URL=http://viz:8000"
+    ports:
+      - "8004:8004"
+    depends_on:
+      dbts:
+        condition: "service_healthy"
+      rabbitmq:
+        condition: "service_healthy"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:$${PORT}"]  
+      interval: 5s
+      timeout: 5s
+      retries: 10
+  
+  viz:
+    image: "debian"
+    working_dir: "/app"
+    volumes:
+      - "./viz_service:/app"
+    command: "./viz_service"
+    restart: always
+    environment:
+      - "PUBLIC_DOMAIN=${PUBLIC_DOMAIN}"
+      - "PORT=8003"
+      - "DATABASE_URL=postgresql://score:password@dbts:5432/postgres?search_path=score"
+      - "LOG_MONGO_URL=mongodb://mongo-log:27017"
+    ports:
+      - "8003:8003"
+    depends_on:
+      dbts:
+        condition: "service_healthy"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:$${PORT}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10

@@ -15,8 +15,8 @@ use sqlx::postgres::PgPool;
 use tracing::info;
 
 use gengrpc::performance::PerformanceClient;
-
 use lapin::{options::*, types::FieldTable, Connection, ConnectionProperties};
+use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 
 #[derive(serde::Deserialize, Debug)]
 struct Env {
@@ -24,6 +24,9 @@ struct Env {
     database_url: String,
     amqp_addr: String,
     performance_url: String,
+    #[serde(alias = "railway_public_domain")]
+    public_domain: Option<String>,
+    log_mongo_url: Option<String>,
 }
 
 #[tokio::main]
@@ -38,7 +41,21 @@ async fn main() -> color_eyre::Result<()> {
     if std::env::var_os("RUST_LOG").is_none() {
         std::env::set_var("RUST_LOG", "poem=debug,info");
     }
-    tracing_subscriber::fmt::init();
+    tracing_subscriber::registry()
+        .with(fmt::layer().with_filter(EnvFilter::from_default_env()))
+        .with(if let Some(uri) = env.log_mongo_url.as_ref() {
+            Some(
+                tracing_mongo::MongoLogger::new(&uri, "log", "task_service")
+                    .await?
+                    .layer(),
+            )
+        } else {
+            tracing::warn!("No log_mongo_url envar set, not logging to MongoDB");
+            None
+        })
+        .init();
+
+    tracing::info!(?env, "Environment Variable");
 
     // Setup database
     let pool = PgPool::connect(&env.database_url).await?;
@@ -55,8 +72,17 @@ async fn main() -> color_eyre::Result<()> {
     };
 
     // OpenAPI
-    let api_service = OpenApiService::new(handler, "TODODODO - Task Service", "1.0")
-        .server(format!("http://localhost:{}", env.port));
+    let server_url = if let Some(domain) = env.public_domain {
+        if domain.contains("://") {
+            format!("{}:{}", domain, env.port)
+        } else {
+            format!("https://{}:{}", domain, env.port)
+        }
+    } else {
+        format!("http://localhost:{}", env.port)
+    };
+    let api_service =
+        OpenApiService::new(handler, "TODODODO - Task Service", "1.0").server(server_url);
     let ui = api_service.openapi_explorer();
     let spec = api_service.spec_endpoint();
 
@@ -107,6 +133,9 @@ async fn main() -> color_eyre::Result<()> {
 
     // Start server
     let ip = format!("0.0.0.0:{}", env.port);
-    Server::new(TcpListener::bind(ip)).run(route).await?;
+    Server::new(TcpListener::bind(ip))
+        .run(route)
+        .await
+        .with_context(|| format!("Fail to start server on port {:?}", env.port))?;
     Ok(())
 }

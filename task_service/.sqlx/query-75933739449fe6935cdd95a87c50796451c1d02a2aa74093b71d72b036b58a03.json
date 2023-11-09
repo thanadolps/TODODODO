@@ -1,0 +1,52 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM routine WHERE id = $1 RETURNING *",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "checktime",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 4,
+        "name": "typena",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "user_id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "75933739449fe6935cdd95a87c50796451c1d02a2aa74093b71d72b036b58a03"
+}

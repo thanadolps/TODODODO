@@ -36,6 +36,26 @@ pub enum OptionalRoutineResponse {
 
 
 
+#[derive(ApiResponse)]
+pub enum OptionalHabitResponse {
+    #[oai(status = 200)]
+    Ok(Json<dtos::Habit>),
+    #[oai(status = 404)]
+    /// Specified task not found.
+    NotFound,
+}
+
+#[derive(ApiResponse)]
+pub enum OptionalRoutineResponse {
+    #[oai(status = 200)]
+    Ok(Json<dtos::Routine>),
+    #[oai(status = 404)]
+    /// Specified task not found.
+    NotFound,
+}
+
+
+
 pub struct Api {
     pub pool: sqlx::PgPool,
     pub performance: PerformanceClient

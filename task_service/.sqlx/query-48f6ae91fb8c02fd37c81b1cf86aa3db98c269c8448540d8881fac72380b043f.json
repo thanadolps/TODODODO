@@ -1,0 +1,55 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE routine SET title = $1, description = $2, typena = $3 WHERE id = $4 RETURNING *",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "checktime",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 4,
+        "name": "typena",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "user_id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "48f6ae91fb8c02fd37c81b1cf86aa3db98c269c8448540d8881fac72380b043f"
+}

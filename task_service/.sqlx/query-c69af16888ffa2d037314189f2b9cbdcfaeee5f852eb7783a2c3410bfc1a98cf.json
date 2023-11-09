@@ -1,0 +1,47 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT id, user_id, title, description, deadline as \"deadline!\"\n        FROM task\n        WHERE deadline IS NOT NULL\n        AND deadline BETWEEN NOW() + $1 AND NOW() + $1 + $2\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "user_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "deadline!",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Interval",
+        "Interval"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "c69af16888ffa2d037314189f2b9cbdcfaeee5f852eb7783a2c3410bfc1a98cf"
+}

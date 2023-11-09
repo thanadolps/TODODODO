@@ -1,0 +1,49 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO community (name, description, is_private, owner_id) VALUES ($1, $2, $3, $4) RETURNING *",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "is_private",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 4,
+        "name": "owner_id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Bool",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "88fbe80611b820b7e956c4ed04736728ebfe77d2f8b7df157bd7b182f12517dc"
+}
