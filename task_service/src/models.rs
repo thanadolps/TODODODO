@@ -33,3 +33,11 @@ pub struct Routine {
     pub user_id: Uuid,
     pub completed: bool,
 }
+
+#[derive(FromRow, Debug)]
+pub struct Subtask {
+    pub id: Uuid,
+    pub title: String,
+    pub completed: bool,
+    pub task_id: Uuid,
+}

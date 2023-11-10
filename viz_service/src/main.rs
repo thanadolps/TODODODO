@@ -5,8 +5,8 @@ use gengrpc::performance::{
 use poem::{listener::TcpListener, Server};
 use poem_grpc::{Response, RouteGrpc, Status};
 use sqlx::PgPool;
-use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 use time::OffsetDateTime;
+use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 
 use uuid::Uuid;
 struct PerformanceService {
@@ -54,17 +54,17 @@ impl Performance for PerformanceService {
         request: poem_grpc::Request<RoutineDetail>,
     ) -> Result<Response<()>, Status> {
         let task_id = &request.task_id;
-        let complete_date = request.complete_date.as_ref().unwrap();
+        let completed_at = request.completed_at.as_ref().unwrap();
 
-        let converted_complete_date =
-            OffsetDateTime::from_unix_timestamp(complete_date.seconds).unwrap();
+        let converted_completed_at =
+            OffsetDateTime::from_unix_timestamp(completed_at.seconds).unwrap();
 
         let uuid = Uuid::parse_str(task_id).unwrap();
         // Add to table RoutineCompletion
         sqlx::query!(
             "INSERT INTO routine_completion VALUES($1,$2)",
             uuid,
-            converted_complete_date
+            converted_completed_at
         )
         .execute(&self.pool)
         .await
