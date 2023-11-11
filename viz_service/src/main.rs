@@ -91,6 +91,7 @@ async fn main() -> color_eyre::Result<()> {
         .nest("/", route_grpc)
         .with(middleware::Cors::new())
         .with(middleware::CatchPanic::default())
+        .with(middleware::Tracing);
 
     Server::new(TcpListener::bind(format!("0.0.0.0:{}", env.port)))
         .run(route)
