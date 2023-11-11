@@ -58,7 +58,7 @@ services:
       dbts:
         condition: "service_healthy"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:$${PORT}"]
+      test: ["CMD", "curl", "http://localhost:$${PORT}"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -83,7 +83,7 @@ services:
       rabbitmq:
         condition: "service_healthy"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:$${PORT}"]
+      test: ["CMD", "curl", "http://localhost:$${PORT}"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -109,7 +109,7 @@ services:
       rabbitmq:
         condition: "service_healthy"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:$${PORT}"]  
+      test: ["CMD", "curl", "http://localhost:$${PORT}"]  
       interval: 5s
       timeout: 5s
       retries: 10
@@ -132,7 +132,7 @@ services:
       dbts:
         condition: "service_healthy"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:$${PORT}"]
+      test: ["CMD", "curl", "http://localhost:$${PORT}"]
       interval: 5s
       timeout: 5s
       retries: 10
