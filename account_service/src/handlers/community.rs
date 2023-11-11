@@ -39,7 +39,7 @@ impl Api {
     ) -> Result<Json<Community>> {
         let owner_id = claims.sub;
 
-        // TODO: consider if should also join community?
+        // Create community
         let community = sqlx::query_as!(
             Community,
             "INSERT INTO community (name, description, is_private, owner_id) VALUES ($1, $2, $3, $4) RETURNING *",
@@ -51,6 +51,24 @@ impl Api {
         .fetch_one(&self.pool)
         .await
         .map_err(InternalServerError)?;
+
+        // Auto join owner to created community
+        if let Err(err) = self
+            .join_community(Path(community.id), JWTAuth(claims))
+            .await
+        {
+            error!(
+                error = ?err,
+                "Error when trying to join owner to their newly create community"
+            );
+            return Err(Error::from_string(
+                format!(
+                    "Failed to join owner to their newly create community: {}",
+                    err
+                ),
+                StatusCode::INTERNAL_SERVER_ERROR,
+            ));
+        }
 
         Ok(Json(community))
     }
