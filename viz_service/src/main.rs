@@ -1,6 +1,6 @@
 use color_eyre::eyre::Context;
 use gengrpc::performance::{Performance, PerformanceServer, StreakDetail};
-use poem::{listener::TcpListener, Server};
+use poem::{listener::TcpListener, middleware, EndpointExt, Route, Server};
 use poem_grpc::{Response, RouteGrpc, Status};
 use sqlx::PgPool;
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
@@ -84,9 +84,16 @@ async fn main() -> color_eyre::Result<()> {
     let pool = PgPool::connect(&env.database_url).await?;
     sqlx::migrate!("./migrations").run(&pool).await?;
 
+    // Service & Route
     let service = PerformanceService { pool };
+    let route_grpc = RouteGrpc::new().add_service(PerformanceServer::new(service));
+    let route = Route::new()
+        .nest("/", route_grpc)
+        .with(middleware::Cors::new())
+        .with(middleware::CatchPanic::default())
+
     Server::new(TcpListener::bind(format!("0.0.0.0:{}", env.port)))
-        .run(RouteGrpc::new().add_service(PerformanceServer::new(service)))
+        .run(route)
         .await
         .with_context(|| format!("Fail to start server on port {:?}", env.port))?;
 
