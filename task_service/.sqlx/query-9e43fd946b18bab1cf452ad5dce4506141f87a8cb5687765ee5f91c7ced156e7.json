@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT * FROM habit",
+  "query": "SELECT * FROM habit WHERE (user_id = $1 OR $1 IS NULL)",
   "describe": {
     "columns": [
       {
@@ -30,7 +30,9 @@
       }
     ],
     "parameters": {
-      "Left": []
+      "Left": [
+        "Uuid"
+      ]
     },
     "nullable": [
       false,
@@ -40,5 +42,5 @@
       false
     ]
   },
-  "hash": "3801fc849144195fb733e93a83de0d24c10acc4d97bb9387f1a24b844c8244cd"
+  "hash": "9e43fd946b18bab1cf452ad5dce4506141f87a8cb5687765ee5f91c7ced156e7"
 }
