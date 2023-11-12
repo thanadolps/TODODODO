@@ -100,7 +100,7 @@ services:
       - "DATABASE_URL=postgresql://task:password@dbts:5432/postgres?search_path=task"
       - "LOG_MONGO_URL=mongodb://mongo-log:27017"
       - "AMQP_ADDR=amqp://rabbitmq:5672/%2f"
-      - "PERFORMANCE_URL=http://viz:8000"
+      - "PERFORMANCE_URL=http://viz:8003"
     ports:
       - "8004:8004"
     depends_on:
