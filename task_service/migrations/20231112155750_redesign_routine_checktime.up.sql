@@ -1,4 +1,4 @@
 -- Add up migration script here
-ALTER TABLE routine
-ALTER COLUMN checktime
-SET DEFAULT NOW();
+ALTER TABLE habit
+ALTER COLUMN score
+SET DEFAULT 0;

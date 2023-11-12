@@ -53,6 +53,7 @@ pub struct Habit {
     pub id: Uuid,
     pub title: String,
     pub description: String,
+    #[oai(read_only)]
     pub score: i32,
     pub user_id: Uuid,
 }

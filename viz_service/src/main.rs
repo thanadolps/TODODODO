@@ -67,8 +67,7 @@ impl Performance for PerformanceGRPCService {
         let task_id = &request.task_id;
         let completed_at = request.completed_at.as_ref().unwrap();
 
-        let converted_completed_at =
-            DateTime::from_unix_timestamp(completed_at.seconds).unwrap();
+        let converted_completed_at = DateTime::from_unix_timestamp(completed_at.seconds).unwrap();
 
         let uuid = Uuid::parse_str(task_id).unwrap();
         // Add to table RoutineCompletion
@@ -92,8 +91,7 @@ impl Performance for PerformanceGRPCService {
         let positive = request.positive;
         let triggered_at = request.triggered_at.as_ref().unwrap();
 
-        let converted_triggered_at =
-            DateTime::from_unix_timestamp(triggered_at.seconds).unwrap();
+        let converted_triggered_at = DateTime::from_unix_timestamp(triggered_at.seconds).unwrap();
         let uuid = Uuid::parse_str(task_id).unwrap();
 
         sqlx::query!(
@@ -161,23 +159,63 @@ impl PerformanceRESTService {
         }
     }
 
-    #[oai(path = "/routine", method = "get")]
+    #[oai(path = "/routine/:task_id", method = "get")]
     pub async fn get_routine_completion(
         &self,
+        Path(task_id): Path<Uuid>,
         Query(start_date): Query<Option<DateTime>>,
         Query(end_date): Query<Option<DateTime>>,
     ) -> Result<Json<Vec<dtos::RoutineCompletion>>> {
         let rc = sqlx::query_as!(
             models::RoutineCompletion,
-            "SELECT * FROM score.routine_completion WHERE (completed_at >= $1 OR $1 IS NULL) AND (completed_at <= $2 OR $2 IS NULL)",
-            start_date, end_date
+            "SELECT * FROM score.routine_completion WHERE (completed_at >= $1 OR $1 IS NULL) AND (completed_at <= $2 OR $2 IS NULL) AND (task_id=$3)",
+            start_date, end_date, task_id
         )
         .fetch_all(&self.pool)
         .await
         .map_err(InternalServerError)?;
-        
+
         let dto_routine_completions = rc.into_iter().map(dtos::RoutineCompletion::from).collect();
         Ok(Json(dto_routine_completions))
+    }
+
+    #[oai(path = "/habit/:task_id", method = "get")]
+    pub async fn get_habit_history(
+        &self,
+        Path(task_id): Path<Uuid>,
+        Query(start_date): Query<Option<DateTime>>,
+        Query(end_date): Query<Option<DateTime>>,
+    ) -> Result<Json<dtos::HabitHistoryResponse>> {
+        let hhs = sqlx::query_as!(
+            models::HabitHistory,
+            "SELECT * FROM score.habit_history WHERE (triggered_at >= $1 OR $1 IS NULL) AND (triggered_at <= $2 OR $2 IS NULL) AND (task_id=$3)",
+            start_date, end_date, task_id
+        )
+        .fetch_all(&self.pool)
+        .await
+        .map_err(InternalServerError)?;
+
+        let mut growth = Vec::<f32>::new();
+        let mut dates = Vec::<DateTime>::new();
+        let mut point: f32 = 1.0;
+
+        for hh in hhs {
+            if hh.positive {
+                point *= 1.01;
+            } else {
+                point *= 0.99;
+            }
+            growth.push(point);
+            dates.push(hh.triggered_at.unwrap()) //TODO: ohh no unwrap
+        }
+
+        let dto_habit_history = dtos::HabitHistoryResponse{
+            dates: dates,
+            growth: growth,
+            task_id
+        };
+
+        Ok(Json(dto_habit_history))
     }
 }
 
