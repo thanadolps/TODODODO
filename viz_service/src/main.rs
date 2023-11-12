@@ -2,20 +2,24 @@ use color_eyre::eyre::Context;
 use gengrpc::performance::{
     HabitDetail, Performance, PerformanceServer, RoutineDetail, StreakDetail,
 };
-use poem::{listener::TcpListener, middleware, EndpointExt, Route, Server};
+use poem::{listener::TcpListener, middleware, EndpointExt, Route, Server, Result};
+
 use poem_grpc::{Response, RouteGrpc, Status};
-use poem_openapi::{param::Path, payload::Json, ApiResponse, OpenApi};
+use poem_openapi::{param::Path, payload::Json, ApiResponse, OpenApi, OpenApiService};
 use sqlx::PgPool;
 use time::OffsetDateTime;
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 use uuid::Uuid;
-struct PerformanceService {
+struct PerformanceGRPCService {
+    pool: PgPool,
+}
+
+struct PerformanceRESTService {
     pool: PgPool,
 }
 
 #[poem::async_trait]
-#[OpenApi]
-impl Performance for PerformanceService {
+impl Performance for PerformanceGRPCService {
     async fn add_streak(
         &self,
         request: poem_grpc::Request<StreakDetail>,
@@ -98,13 +102,25 @@ impl Performance for PerformanceService {
 
         Ok(Response::new(()))
     }
+}
 
-    // TODO: remove this later
-    // #[oai(path = "/hello", method = "get")]
-    // /// List all tasks.
-    // pub async fn hello(&self) -> Result<String> {
-    //     Ok("Hello".to_string())
-    // }
+#[derive(ApiResponse)]
+pub enum HelloResponse {
+    #[oai(status = 200)]
+    Ok(Json<String>),
+    #[oai(status = 404)]
+    /// Specified task not found.
+    NotFound,
+}
+
+#[OpenApi]
+impl PerformanceRESTService {
+    #[oai(path = "/hello", method = "get")]
+    pub async fn list_tasks(&self) -> Result<HelloResponse> {
+        Ok(HelloResponse::Ok(Json("Hello".to_string())))
+
+        //Ok("Hello".to_string()), None => Ok("Error".to_string())
+    }
 }
 
 #[derive(serde::Deserialize, Debug)]
@@ -112,6 +128,7 @@ struct Env {
     port: u16,
     database_url: String,
     log_mongo_url: Option<String>,
+    public_domain: Option<String>,
 }
 
 #[tokio::main]
@@ -144,11 +161,33 @@ async fn main() -> color_eyre::Result<()> {
     let pool = PgPool::connect(&env.database_url).await?;
     sqlx::migrate!("./migrations").run(&pool).await?;
 
+    let server_url = if let Some(domain) = env.public_domain {
+        if domain.contains("://") {
+            format!("{}:{}/api", domain, env.port)
+        } else {
+            format!("https://{}:{}/api", domain, env.port)
+        }
+    } else {
+        format!("http://localhost:{}/api", env.port)
+    };
+
+    let api_service = OpenApiService::new(
+        PerformanceRESTService { pool: pool.clone() },
+        "TODODODO - Performance Service",
+        "1.0",
+    )
+    .server(server_url);
+    let ui = api_service.openapi_explorer();
+    let spec = api_service.spec_endpoint();
+
     // Service & Route
-    let service = PerformanceService { pool };
+    let service = PerformanceGRPCService { pool };
     let route_grpc = RouteGrpc::new().add_service(PerformanceServer::new(service));
     let route = Route::new()
         .nest("/", route_grpc)
+        .nest("/api", api_service)
+        .nest("/docs", ui)
+        .nest("/docs-json", spec)
         .with(middleware::Cors::new())
         .with(middleware::CatchPanic::default())
         .with(middleware::Tracing);
