@@ -1,11 +1,17 @@
+mod dtos;
+mod models;
 use color_eyre::eyre::Context;
 use gengrpc::performance::{
     HabitDetail, Performance, PerformanceServer, RoutineDetail, StreakDetail,
 };
-use poem::{listener::TcpListener, middleware, EndpointExt, Route, Server, Result};
-
+use poem::error::InternalServerError;
+use poem::{listener::TcpListener, middleware, EndpointExt, Result, Route, Server};
 use poem_grpc::{Response, RouteGrpc, Status};
-use poem_openapi::{param::Path, payload::Json, ApiResponse, OpenApi, OpenApiService};
+use poem_openapi::{
+    param::{Path, Query},
+    payload::Json,
+    ApiResponse, OpenApi, OpenApiService,
+};
 use sqlx::PgPool;
 use time::OffsetDateTime;
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
@@ -113,13 +119,40 @@ pub enum HelloResponse {
     NotFound,
 }
 
+#[derive(ApiResponse)]
+pub enum OptionalStreakResponse {
+    #[oai(status = 200)]
+    Ok(Json<dtos::Streak>),
+    #[oai(status = 404)]
+    /// Specified task not found.
+    NotFound,
+}
+
 #[OpenApi]
 impl PerformanceRESTService {
     #[oai(path = "/hello", method = "get")]
     pub async fn list_tasks(&self) -> Result<HelloResponse> {
         Ok(HelloResponse::Ok(Json("Hello".to_string())))
+    }
 
-        //Ok("Hello".to_string()), None => Ok("Error".to_string())
+    #[oai(path = "/streak", method = "get")]
+    pub async fn get_streak(
+        &self,
+        Query(user_id): Query<Option<Uuid>>,
+    ) -> Result<OptionalStreakResponse> {
+        let streak = sqlx::query_as!(
+            models::Streak,
+            "SELECT * FROM score.performance WHERE user_id = $1",
+            user_id
+        )
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(InternalServerError)?;
+
+        match streak.map(dtos::Streak::from) {
+            Some(streak) => Ok(OptionalStreakResponse::Ok(Json(dtos::Streak::from(streak)))),
+            None => Ok(OptionalStreakResponse::NotFound),
+        }
     }
 }
 

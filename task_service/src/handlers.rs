@@ -53,17 +53,10 @@ pub enum OptionalRoutineResponse {
     NotFound,
 }
 
-
-
-
-
-
-
 pub struct Api {
     pub pool: sqlx::PgPool,
     pub performance: PerformanceClient
 }
-
 
 #[OpenApi]
 impl Api {
