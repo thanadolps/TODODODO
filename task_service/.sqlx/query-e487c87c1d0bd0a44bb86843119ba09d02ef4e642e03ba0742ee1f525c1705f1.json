@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT * FROM task",
+  "query": "SELECT * FROM routine WHERE (user_id = $1 OR $1 IS NULL)",
   "describe": {
     "columns": [
       {
@@ -20,13 +20,13 @@
       },
       {
         "ordinal": 3,
-        "name": "deadline",
+        "name": "checktime",
         "type_info": "Timestamptz"
       },
       {
         "ordinal": 4,
-        "name": "completed",
-        "type_info": "Bool"
+        "name": "typena",
+        "type_info": "Text"
       },
       {
         "ordinal": 5,
@@ -35,22 +35,24 @@
       },
       {
         "ordinal": 6,
-        "name": "community_id",
-        "type_info": "Uuid"
+        "name": "completed",
+        "type_info": "Bool"
       }
     ],
     "parameters": {
-      "Left": []
+      "Left": [
+        "Uuid"
+      ]
     },
     "nullable": [
       false,
       false,
       false,
-      true,
       false,
       false,
-      true
+      false,
+      false
     ]
   },
-  "hash": "b1f6453252825a84e16f26c7fe2875cd044927b9a2ef778151ea299b01e37f7f"
+  "hash": "e487c87c1d0bd0a44bb86843119ba09d02ef4e642e03ba0742ee1f525c1705f1"
 }

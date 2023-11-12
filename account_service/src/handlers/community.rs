@@ -1,6 +1,7 @@
 use poem::{error::InternalServerError, http::StatusCode, Error, Result};
 use poem_openapi::{param::Path, payload::Json, OpenApi};
 use sqlx::PgPool;
+use tracing::error;
 use uuid::Uuid;
 
 use crate::jwt::JWTAuth;
@@ -38,7 +39,7 @@ impl Api {
     ) -> Result<Json<Community>> {
         let owner_id = claims.sub;
 
-        // TODO: consider if should also join community?
+        // Create community
         let community = sqlx::query_as!(
             Community,
             "INSERT INTO community (name, description, is_private, owner_id) VALUES ($1, $2, $3, $4) RETURNING *",
@@ -51,7 +52,63 @@ impl Api {
         .await
         .map_err(InternalServerError)?;
 
+        // Auto join owner to created community
+        if let Err(err) = self
+            .join_community(Path(community.id), JWTAuth(claims))
+            .await
+        {
+            error!(
+                error = ?err,
+                "Error when trying to join owner to their newly create community"
+            );
+            return Err(Error::from_string(
+                format!(
+                    "Failed to join owner to their newly create community: {}",
+                    err
+                ),
+                StatusCode::INTERNAL_SERVER_ERROR,
+            ));
+        }
+
         Ok(Json(community))
+    }
+
+    /// Delete community
+    #[oai(path = "/community/:id", method = "delete")]
+    async fn delete_community(&self, Path(id): Path<Uuid>, JWTAuth(claims): JWTAuth) -> Result<()> {
+        let user_id = claims.sub;
+
+        let community = get_community(&self.pool, id)
+            .await
+            .map_err(InternalServerError)?
+            .ok_or(Error::from_string(
+                "The community does not exist",
+                StatusCode::NOT_FOUND,
+            ))?;
+
+        if community.owner_id != user_id {
+            return Err(Error::from_string(
+                "You are not the owner of the community",
+                StatusCode::FORBIDDEN,
+            ));
+        }
+
+        let result = sqlx::query!("DELETE FROM community WHERE id = $1", id)
+            .execute(&self.pool)
+            .await
+            .map_err(InternalServerError)?;
+
+        if result.rows_affected() == 0 {
+            error!(
+                community_id = ?id,
+                requester_user_id = ?user_id,
+                owner_id = ?community.owner_id,
+                "Failed to delete community, community should exist but no row affected"
+            );
+            return Err(Error::from_status(StatusCode::INTERNAL_SERVER_ERROR));
+        }
+
+        Ok(())
     }
 
     /// List joined communities

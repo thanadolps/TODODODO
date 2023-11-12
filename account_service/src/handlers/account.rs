@@ -89,7 +89,7 @@ impl Api {
         .await
         {
             Ok(account) => {
-                let claims = jwt::Claims::new(account.id);
+                let claims = jwt::Claims::new(account.id, account.username, account.email);
                 let token = jsonwebtoken::encode(
                     &jsonwebtoken::Header::default(),
                     &claims,
@@ -129,7 +129,7 @@ impl Api {
             return Ok(AuthResponse::Unauthorized);
         }
 
-        let claims = jwt::Claims::new(account.id);
+        let claims = jwt::Claims::new(account.id, account.username, account.email);
         let token =
             jsonwebtoken::encode(&jsonwebtoken::Header::default(), &claims, &self.encode_key)
                 .map_err(InternalServerError)?;

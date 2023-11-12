@@ -4,7 +4,7 @@ use gengrpc::performance::{PerformanceClient, StreakDetail, RoutineDetail, Habit
 use poem::error::InternalServerError;
 use poem::Result;
 use poem_grpc::Request;
-use poem_openapi::{param::Path, payload::Json, ApiResponse, OpenApi};
+use poem_openapi::{param::{Path, Query}, payload::Json, ApiResponse, OpenApi};
 use uuid::Uuid;
 use prost_types::Timestamp; // Import Timestamp from prost_types crate
 
@@ -60,8 +60,8 @@ pub struct Api {
 impl Api {
     #[oai(path = "/task", method = "get")]
     /// List all tasks.
-    pub async fn list_tasks(&self) -> Result<Json<Vec<dtos::Task>>> {
-        let tasks = sqlx::query_as!(models::Task, "SELECT * FROM task")
+    pub async fn list_tasks(&self, Query(user_id): Query<Option<Uuid>>) -> Result<Json<Vec<dtos::Task>>> {
+        let tasks = sqlx::query_as!(models::Task, "SELECT * FROM task WHERE (user_id = $1 OR $1 IS NULL)", user_id)
             .fetch_all(&self.pool)
             .await
             .map_err(InternalServerError)?;
@@ -246,8 +246,8 @@ impl Api {
 
     #[oai(path = "/habit", method = "get")]
     /// List all habits.
-    pub async fn list_habits(&self) -> Result<Json<Vec<dtos::Habit>>> {
-        let habits = sqlx::query_as!(models::Habit, "SELECT * FROM habit")
+    pub async fn list_habits(&self, Query(user_id): Query<Option<Uuid>>) -> Result<Json<Vec<dtos::Habit>>> {
+        let habits = sqlx::query_as!(models::Habit, "SELECT * FROM habit WHERE (user_id = $1 OR $1 IS NULL)", user_id)
             .fetch_all(&self.pool)
             .await
             .map_err(InternalServerError)?;
@@ -410,8 +410,8 @@ impl Api {
 
     #[oai(path = "/routine", method = "get")]
     /// List all routines.
-    pub async fn list_routines(&self) -> Result<Json<Vec<dtos::Routine>>> {
-        let routines = sqlx::query_as!(models::Routine, "SELECT * FROM routine")
+    pub async fn list_routines(&self, Query(user_id): Query<Option<Uuid>>) -> Result<Json<Vec<dtos::Routine>>> {
+        let routines = sqlx::query_as!(models::Routine, "SELECT * FROM routine WHERE (user_id = $1 OR $1 IS NULL)", user_id)
             .fetch_all(&self.pool)
             .await
             .map_err(InternalServerError)?;

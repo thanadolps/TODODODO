@@ -17,10 +17,14 @@ pub struct Claims {
     pub iat: usize,
     /// Subject of the JWT (user id)
     pub sub: Uuid,
+    /// Username
+    pub username: String,
+    /// Email
+    pub email: String,
 }
 
 impl Claims {
-    pub fn new(sub: Uuid) -> Self {
+    pub fn new(sub: Uuid, username: String, email: String) -> Self {
         Self {
             exp: (SystemTime::now() + Duration::from_secs(60 * 60 * 24 * 365))
                 .duration_since(UNIX_EPOCH)
@@ -31,6 +35,8 @@ impl Claims {
                 .unwrap()
                 .as_secs() as usize,
             sub,
+            username,
+            email,
         }
     }
 }
