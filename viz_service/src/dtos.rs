@@ -12,3 +12,12 @@ pub struct Streak {
     pub combo: i32,
     pub best_record: i32,
 }
+
+#[derive(Object, StructMapper)]
+#[struct_mapper(from_type = "crate::models::RoutineCompletion")]
+pub struct RoutineCompletion {
+    #[oai(read_only)]
+    pub task_id: Uuid,
+    #[oai(read_only)]
+    pub completed_at: Option<DateTime>,
+}

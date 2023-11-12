@@ -12,6 +12,7 @@ pub struct Task {
     pub title: String,
     pub description: String,
     pub deadline: Option<DateTime>,
+    #[oai(read_only)]
     pub completed: bool,
 
     pub user_id: Uuid,
@@ -26,6 +27,7 @@ pub struct TaskWithSubtasks {
     pub title: String,
     pub description: String,
     pub deadline: Option<DateTime>,
+    #[oai(read_only)]
     pub completed: bool,
 
     pub user_id: Uuid,
@@ -62,8 +64,10 @@ pub struct Routine {
     pub id: Uuid,
     pub title: String,
     pub description: String,
+    #[oai(read_only)]
     pub checktime: Option<DateTime>,
     pub typena: String,
     pub user_id: Uuid,
+    #[oai(read_only)]
     pub completed: bool,
 }

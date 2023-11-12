@@ -485,14 +485,12 @@ impl Api {
     #[oai(path = "/routine", method = "post")]
     /// Add a new routine.
     pub async fn add_routine(&self, Json(routine): Json<dtos::Routine>) -> Result<Json<dtos::Routine>> {
-        let current_time =  SystemTime::now(); // Get the current time in UTC
 
         let routine = sqlx::query_as!(
             models::Routine,
-            "INSERT INTO routine (title, description, checktime, typena, user_id) VALUES ($1, $2,$3, $4,$5) RETURNING *",
+            "INSERT INTO routine (title, description, typena, user_id) VALUES ($1, $2, $3,$4) RETURNING *",
             routine.title,
             routine.description, 
-           routine.checktime,
             routine.typena,
             routine.user_id 
         )

@@ -13,7 +13,7 @@ use poem_openapi::{
     ApiResponse, OpenApi, OpenApiService,
 };
 use sqlx::PgPool;
-use time::OffsetDateTime;
+use time::OffsetDateTime as DateTime;
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 use uuid::Uuid;
 struct PerformanceGRPCService {
@@ -68,7 +68,7 @@ impl Performance for PerformanceGRPCService {
         let completed_at = request.completed_at.as_ref().unwrap();
 
         let converted_completed_at =
-            OffsetDateTime::from_unix_timestamp(completed_at.seconds).unwrap();
+            DateTime::from_unix_timestamp(completed_at.seconds).unwrap();
 
         let uuid = Uuid::parse_str(task_id).unwrap();
         // Add to table RoutineCompletion
@@ -93,7 +93,7 @@ impl Performance for PerformanceGRPCService {
         let triggered_at = request.triggered_at.as_ref().unwrap();
 
         let converted_triggered_at =
-            OffsetDateTime::from_unix_timestamp(triggered_at.seconds).unwrap();
+            DateTime::from_unix_timestamp(triggered_at.seconds).unwrap();
         let uuid = Uuid::parse_str(task_id).unwrap();
 
         sqlx::query!(
@@ -128,6 +128,15 @@ pub enum OptionalStreakResponse {
     NotFound,
 }
 
+#[derive(ApiResponse)]
+pub enum OptionalRoutineCompletionResponse {
+    #[oai(status = 200)]
+    Ok(Json<dtos::RoutineCompletion>),
+    #[oai(status = 404)]
+    /// Specified task not found.
+    NotFound,
+}
+
 #[OpenApi]
 impl PerformanceRESTService {
     #[oai(path = "/hello", method = "get")]
@@ -135,15 +144,12 @@ impl PerformanceRESTService {
         Ok(HelloResponse::Ok(Json("Hello".to_string())))
     }
 
-    #[oai(path = "/streak", method = "get")]
-    pub async fn get_streak(
-        &self,
-        Query(user_id): Query<Option<Uuid>>,
-    ) -> Result<OptionalStreakResponse> {
+    #[oai(path = "/streak/:id", method = "get")]
+    pub async fn get_streak(&self, Path(id): Path<Uuid>) -> Result<OptionalStreakResponse> {
         let streak = sqlx::query_as!(
             models::Streak,
             "SELECT * FROM score.performance WHERE user_id = $1",
-            user_id
+            id
         )
         .fetch_optional(&self.pool)
         .await
@@ -153,6 +159,25 @@ impl PerformanceRESTService {
             Some(streak) => Ok(OptionalStreakResponse::Ok(Json(dtos::Streak::from(streak)))),
             None => Ok(OptionalStreakResponse::NotFound),
         }
+    }
+
+    #[oai(path = "/routine", method = "get")]
+    pub async fn get_routine_completion(
+        &self,
+        Query(start_date): Query<Option<DateTime>>,
+        Query(end_date): Query<Option<DateTime>>,
+    ) -> Result<Json<Vec<dtos::RoutineCompletion>>> {
+        let rc = sqlx::query_as!(
+            models::RoutineCompletion,
+            "SELECT * FROM score.routine_completion WHERE (completed_at >= $1 OR $1 IS NULL) AND (completed_at <= $2 OR $2 IS NULL)",
+            start_date, end_date
+        )
+        .fetch_all(&self.pool)
+        .await
+        .map_err(InternalServerError)?;
+        
+        let dto_routine_completions = rc.into_iter().map(dtos::RoutineCompletion::from).collect();
+        Ok(Json(dto_routine_completions))
     }
 }
 
