@@ -40,5 +40,5 @@ pub struct HabitHistoryResponse {
     #[oai(read_only)]
     pub dates: Vec<DateTime>,
     #[oai(read_only)]
-    pub growth: Vec<f32>,
+    pub growth: Vec<f64>,
 }

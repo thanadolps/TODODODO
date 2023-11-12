@@ -1,12 +1,13 @@
 mod dtos;
 mod models;
+
 use color_eyre::eyre::Context;
 use gengrpc::performance::{
     HabitDetail, Performance, PerformanceServer, RoutineDetail, StreakDetail,
 };
 use poem::error::InternalServerError;
 use poem::{listener::TcpListener, middleware, EndpointExt, Result, Route, Server};
-use poem_grpc::{Response, RouteGrpc, Status};
+use poem_grpc::{Code, Response, RouteGrpc, Status};
 use poem_openapi::{
     param::{Path, Query},
     payload::Json,
@@ -31,15 +32,15 @@ impl Performance for PerformanceGRPCService {
         request: poem_grpc::Request<StreakDetail>,
     ) -> Result<Response<()>, Status> {
         let user_id = &request.user_id;
-
-        let uuid = Uuid::parse_str(user_id).unwrap();
+        let uuid = Uuid::parse_str(user_id)
+            .map_err(|err| Status::new(Code::InvalidArgument).with_message(err))?;
 
         sqlx::query!("
         INSERT INTO performance (user_id, combo, best_record)
             VALUES ($1, 1, 1)
             ON CONFLICT (user_id)
             DO UPDATE SET combo = performance.combo + 1, best_record = GREATEST(performance.combo + 1, performance.best_record);
-        ", uuid).execute(&self.pool).await.unwrap();
+        ", uuid).execute(&self.pool).await.map_err(Status::from_std_error)?;
 
         Ok(Response::new(()))
     }
@@ -50,12 +51,13 @@ impl Performance for PerformanceGRPCService {
     ) -> Result<Response<()>, Status> {
         let user_id = &request.user_id;
 
-        let uuid = Uuid::parse_str(user_id).unwrap();
+        let uuid = Uuid::parse_str(user_id)
+            .map_err(|err| Status::new(Code::InvalidArgument).with_message(err))?;
 
         sqlx::query!("UPDATE performance SET combo = 0 WHERE user_id=$1", uuid)
             .execute(&self.pool)
             .await
-            .unwrap();
+            .map_err(Status::from_std_error)?;
 
         Ok(Response::new(()))
     }
@@ -65,11 +67,16 @@ impl Performance for PerformanceGRPCService {
         request: poem_grpc::Request<RoutineDetail>,
     ) -> Result<Response<()>, Status> {
         let task_id = &request.task_id;
-        let completed_at = request.completed_at.as_ref().unwrap();
+        let completed_at = request
+            .completed_at
+            .as_ref()
+            .ok_or(Status::new(Code::InvalidArgument))?;
 
-        let converted_completed_at = DateTime::from_unix_timestamp(completed_at.seconds).unwrap();
+        let converted_completed_at =
+            DateTime::from_unix_timestamp(completed_at.seconds).map_err(Status::from_std_error)?;
 
-        let uuid = Uuid::parse_str(task_id).unwrap();
+        let uuid = Uuid::parse_str(task_id)
+            .map_err(|err| Status::new(Code::InvalidArgument).with_message(err))?;
         // Add to table RoutineCompletion
         sqlx::query!(
             "INSERT INTO routine_completion VALUES($1,$2)",
@@ -78,7 +85,7 @@ impl Performance for PerformanceGRPCService {
         )
         .execute(&self.pool)
         .await
-        .unwrap();
+        .map_err(Status::from_std_error)?;
 
         Ok(Response::new(()))
     }
@@ -89,10 +96,15 @@ impl Performance for PerformanceGRPCService {
     ) -> Result<Response<()>, Status> {
         let task_id = &request.task_id;
         let positive = request.positive;
-        let triggered_at = request.triggered_at.as_ref().unwrap();
+        let triggered_at = request
+            .triggered_at
+            .as_ref()
+            .ok_or(Status::new(Code::InvalidArgument))?;
 
-        let converted_triggered_at = DateTime::from_unix_timestamp(triggered_at.seconds).unwrap();
-        let uuid = Uuid::parse_str(task_id).unwrap();
+        let converted_triggered_at =
+            DateTime::from_unix_timestamp(triggered_at.seconds).map_err(Status::from_std_error)?;
+        let uuid = Uuid::parse_str(task_id)
+            .map_err(|err| Status::new(Code::InvalidArgument).with_message(err))?;
 
         sqlx::query!(
             "INSERT INTO habit_history VALUES($1,$2,$3)",
@@ -102,7 +114,7 @@ impl Performance for PerformanceGRPCService {
         )
         .execute(&self.pool)
         .await
-        .unwrap();
+        .map_err(Status::from_std_error)?;
 
         Ok(Response::new(()))
     }
@@ -186,8 +198,7 @@ impl PerformanceRESTService {
         Query(start_date): Query<Option<DateTime>>,
         Query(end_date): Query<Option<DateTime>>,
     ) -> Result<Json<dtos::HabitHistoryResponse>> {
-        let hhs = sqlx::query_as!(
-            models::HabitHistory,
+        let hhs = sqlx::query!(
             "SELECT * FROM score.habit_history WHERE (triggered_at >= $1 OR $1 IS NULL) AND (triggered_at <= $2 OR $2 IS NULL) AND (task_id=$3)",
             start_date, end_date, task_id
         )
@@ -195,24 +206,20 @@ impl PerformanceRESTService {
         .await
         .map_err(InternalServerError)?;
 
-        let mut growth = Vec::<f32>::new();
-        let mut dates = Vec::<DateTime>::new();
-        let mut point: f32 = 1.0;
+        let dates = hhs.iter().map(|hh| hh.triggered_at).collect();
+        let growth = hhs
+            .iter()
+            .scan(1.0, |point, hh| {
+                *point *= if hh.positive { 1.01 } else { 0.99 };
+                let rounded_point = (*point * 1000_f64).round() / 1000.0;
+                Some(rounded_point)
+            })
+            .collect();
 
-        for hh in hhs {
-            if hh.positive {
-                point *= 1.01;
-            } else {
-                point *= 0.99;
-            }
-            growth.push(point);
-            dates.push(hh.triggered_at.unwrap()) //TODO: ohh no unwrap
-        }
-
-        let dto_habit_history = dtos::HabitHistoryResponse{
+        let dto_habit_history = dtos::HabitHistoryResponse {
             dates: dates,
             growth: growth,
-            task_id
+            task_id,
         };
 
         Ok(Json(dto_habit_history))
