@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        UPDATE task.subtask SET completed = true WHERE id=$1 RETURNING completed",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "completed",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "f09e914ead6628440dc46d85a6a25591d0ea90860d42829a6e1a89bdd8992e8f"
+}

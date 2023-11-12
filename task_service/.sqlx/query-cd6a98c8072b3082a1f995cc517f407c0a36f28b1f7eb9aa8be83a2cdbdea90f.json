@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO routine (title, description, checktime, typena, user_id) VALUES ($1, $2,$3, $4,$5) RETURNING *",
+  "query": "INSERT INTO routine (title, description, typena, user_id) VALUES ($1, $2, $3,$4) RETURNING *",
   "describe": {
     "columns": [
       {
@@ -43,7 +43,6 @@
       "Left": [
         "Text",
         "Text",
-        "Timestamptz",
         "Text",
         "Uuid"
       ]
@@ -58,5 +57,5 @@
       false
     ]
   },
-  "hash": "62bdc647521c389cdbbe6e84da79a23761a8b833c8baf5959021e7e8b739147d"
+  "hash": "cd6a98c8072b3082a1f995cc517f407c0a36f28b1f7eb9aa8be83a2cdbdea90f"
 }
