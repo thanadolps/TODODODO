@@ -2,7 +2,7 @@ use color_eyre::eyre::Context;
 use gengrpc::performance::{
     HabitDetail, Performance, PerformanceServer, RoutineDetail, StreakDetail,
 };
-use poem::{listener::TcpListener, Server};
+use poem::{listener::TcpListener, middleware, EndpointExt, Route, Server};
 use poem_grpc::{Response, RouteGrpc, Status};
 use poem_openapi::{param::Path, payload::Json, ApiResponse, OpenApi};
 use sqlx::PgPool;
@@ -144,9 +144,17 @@ async fn main() -> color_eyre::Result<()> {
     let pool = PgPool::connect(&env.database_url).await?;
     sqlx::migrate!("./migrations").run(&pool).await?;
 
+    // Service & Route
     let service = PerformanceService { pool };
+    let route_grpc = RouteGrpc::new().add_service(PerformanceServer::new(service));
+    let route = Route::new()
+        .nest("/", route_grpc)
+        .with(middleware::Cors::new())
+        .with(middleware::CatchPanic::default())
+        .with(middleware::Tracing);
+
     Server::new(TcpListener::bind(format!("0.0.0.0:{}", env.port)))
-        .run(RouteGrpc::new().add_service(PerformanceServer::new(service)))
+        .run(route)
         .await
         .with_context(|| format!("Fail to start server on port {:?}", env.port))?;
 

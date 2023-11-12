@@ -92,7 +92,8 @@ async fn main() -> color_eyre::Result<()> {
         .nest("/docs", ui)
         .nest("/docs-json", spec)
         .with(middleware::Cors::default())
-        .with(middleware::CatchPanic::default());
+        .with(middleware::CatchPanic::default())
+        .with(middleware::Tracing);
 
     // Watch for deadline
     tokio::spawn(async move {
