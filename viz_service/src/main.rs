@@ -4,16 +4,17 @@ use gengrpc::performance::{
 };
 use poem::{listener::TcpListener, Server};
 use poem_grpc::{Response, RouteGrpc, Status};
+use poem_openapi::{param::Path, payload::Json, ApiResponse, OpenApi};
 use sqlx::PgPool;
 use time::OffsetDateTime;
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
-
 use uuid::Uuid;
 struct PerformanceService {
     pool: PgPool,
 }
 
 #[poem::async_trait]
+#[OpenApi]
 impl Performance for PerformanceService {
     async fn add_streak(
         &self,
@@ -97,6 +98,13 @@ impl Performance for PerformanceService {
 
         Ok(Response::new(()))
     }
+
+    // TODO: remove this later
+    // #[oai(path = "/hello", method = "get")]
+    // /// List all tasks.
+    // pub async fn hello(&self) -> Result<String> {
+    //     Ok("Hello".to_string())
+    // }
 }
 
 #[derive(serde::Deserialize, Debug)]

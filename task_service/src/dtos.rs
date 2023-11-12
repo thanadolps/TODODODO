@@ -19,6 +19,21 @@ pub struct Task {
 }
 
 #[derive(Object, StructMapper)]
+#[struct_mapper(from_type = "crate::models::TaskWithSubtasks")]
+pub struct TaskWithSubtasks {
+    #[oai(read_only)]
+    pub id: Uuid,
+    pub title: String,
+    pub description: String,
+    pub deadline: Option<DateTime>,
+    pub completed: bool,
+
+    pub user_id: Uuid,
+    pub community_id: Option<Uuid>,
+    pub subtasks: Vec<Subtask>,
+}
+
+#[derive(Object, StructMapper)]
 #[struct_mapper(from_type = "crate::models::Subtask")]
 pub struct Subtask {
     #[oai(read_only)]

@@ -1,4 +1,4 @@
-use crate::{dtos::{self}, models};
+use crate::{dtos::{self, TaskWithSubtasks}, models};
 use std::time::{SystemTime, UNIX_EPOCH};
 use gengrpc::performance::{PerformanceClient, StreakDetail, RoutineDetail, HabitDetail};
 use poem::error::InternalServerError;
@@ -12,6 +12,15 @@ use prost_types::Timestamp; // Import Timestamp from prost_types crate
 pub enum OptionalTaskResponse {
     #[oai(status = 200)]
     Ok(Json<dtos::Task>),
+    #[oai(status = 404)]
+    /// Specified task not found.
+    NotFound,
+}
+
+#[derive(ApiResponse)]
+pub enum OptionalTaskWithSubtasksResponse {
+    #[oai(status = 200)]
+    Ok(Json<dtos::TaskWithSubtasks>),
     #[oai(status = 404)]
     /// Specified task not found.
     NotFound,
@@ -60,27 +69,73 @@ pub struct Api {
 impl Api {
     #[oai(path = "/task", method = "get")]
     /// List all tasks.
-    pub async fn list_tasks(&self, Query(user_id): Query<Option<Uuid>>) -> Result<Json<Vec<dtos::Task>>> {
+    pub async fn list_tasks(&self, Query(user_id): Query<Option<Uuid>>) -> Result<Json<Vec<dtos::TaskWithSubtasks>>> {
         let tasks = sqlx::query_as!(models::Task, "SELECT * FROM task WHERE (user_id = $1 OR $1 IS NULL)", user_id)
             .fetch_all(&self.pool)
             .await
             .map_err(InternalServerError)?;
 
-        let dto_tasks = tasks.into_iter().map(dtos::Task::from).collect();
-        Ok(Json(dto_tasks))
+            let mut dto_tasks_with_subtasks = Vec::new();
+
+            for task in tasks {
+                let subtasks = sqlx::query_as!(
+                    models::Subtask,
+                    "SELECT * FROM task.subtask WHERE task_id = $1",
+                    task.id
+                )
+                .fetch_all(&self.pool)
+                .await
+                .map_err(InternalServerError)?;
+        
+                let task_with_subtasks = models::TaskWithSubtasks {
+                    id: task.id,
+                    user_id: task.user_id,
+                    community_id: task.community_id,
+                    completed: task.completed,
+                    deadline: task.deadline,
+                    description: task.description.to_string(),
+                    title: task.title.to_string(),
+                    subtasks,
+                };
+        
+                dto_tasks_with_subtasks.push(dtos::TaskWithSubtasks::from(task_with_subtasks));
+            }
+        
+            Ok(Json(dto_tasks_with_subtasks))
     }
 
     #[oai(path = "/task/:id", method = "get")]
     /// Get a task by id.
-    pub async fn get_task(&self, Path(id): Path<Uuid>) -> Result<OptionalTaskResponse> {
+    pub async fn get_task(&self, Path(id): Path<Uuid>) -> Result<OptionalTaskWithSubtasksResponse> {
         let task = sqlx::query_as!(models::Task, "SELECT * FROM task WHERE id = $1", id)
             .fetch_optional(&self.pool)
             .await
             .map_err(InternalServerError)?;
 
         match task.map(dtos::Task::from) {
-            Some(task) => Ok(OptionalTaskResponse::Ok(Json(task))),
-            None => Ok(OptionalTaskResponse::NotFound),
+            Some(task) => {
+                let subtasks = sqlx::query_as!(
+                    models::Subtask,
+                    "select * from task.subtask where task_id=$1",
+                    Some(task.id)
+                )
+                .fetch_all(&self.pool)
+                .await
+                .map_err(InternalServerError)?;
+
+                let task_with_subtasks = models::TaskWithSubtasks{
+                    id: task.id,
+                    user_id: task.user_id,
+                    community_id: task.community_id,
+                    completed: task.completed,
+                    deadline: task.deadline,
+                    description: task.description.to_string(),
+                    title: task.title.to_string(),
+                    subtasks: subtasks
+                };
+                
+                Ok(OptionalTaskWithSubtasksResponse::Ok(Json(dtos::TaskWithSubtasks::from(task_with_subtasks))))},
+            None => Ok(OptionalTaskWithSubtasksResponse::NotFound),
         }
     }
 
