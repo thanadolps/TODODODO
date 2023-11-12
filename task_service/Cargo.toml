@@ -18,16 +18,19 @@ sqlx = { workspace = true }
 structmapper = "0.4.2"
 # diff-struct = "0.5.3"
 
-color-eyre = {workspace = true}
-dotenvy = {workspace = true}
-envy = {workspace = true}
-serde = {workspace = true}
-tokio = {workspace = true}
-tracing = {workspace = true}
-tracing-subscriber = {workspace = true}
+color-eyre = { workspace = true }
+dotenvy = { workspace = true }
+envy = { workspace = true }
+serde = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
 
-gengrpc = {path = "../gengrpc"}
-tracing-mongo = {path = "../tracing-mongo"}
+gengrpc = { path = "../gengrpc" }
+tracing-mongo = { path = "../tracing-mongo" }
 
 serde_json = "1.0"
 lapin = "2.0"
+
+prost = "0.7"
+prost-types = "0.7"

@@ -12,10 +12,38 @@ pub struct Task {
     pub title: String,
     pub description: String,
     pub deadline: Option<DateTime>,
+    #[oai(read_only)]
     pub completed: bool,
 
     pub user_id: Uuid,
     pub community_id: Option<Uuid>,
+}
+
+#[derive(Object, StructMapper)]
+#[struct_mapper(from_type = "crate::models::TaskWithSubtasks")]
+pub struct TaskWithSubtasks {
+    #[oai(read_only)]
+    pub id: Uuid,
+    pub title: String,
+    pub description: String,
+    pub deadline: Option<DateTime>,
+    #[oai(read_only)]
+    pub completed: bool,
+
+    pub user_id: Uuid,
+    pub community_id: Option<Uuid>,
+    pub subtasks: Vec<Subtask>,
+}
+
+#[derive(Object, StructMapper)]
+#[struct_mapper(from_type = "crate::models::Subtask")]
+pub struct Subtask {
+    #[oai(read_only)]
+    pub id: Uuid,
+    pub title: String,
+    #[oai(read_only)]
+    pub completed: bool,
+    pub task_id: Uuid,
 }
 
 #[derive(Object, StructMapper)]
@@ -25,6 +53,7 @@ pub struct Habit {
     pub id: Uuid,
     pub title: String,
     pub description: String,
+    #[oai(read_only)]
     pub score: i32,
     pub user_id: Uuid,
 }
@@ -36,8 +65,10 @@ pub struct Routine {
     pub id: Uuid,
     pub title: String,
     pub description: String,
+    #[oai(read_only)]
     pub checktime: Option<DateTime>,
     pub typena: String,
     pub user_id: Uuid,
+    #[oai(read_only)]
     pub completed: bool,
 }

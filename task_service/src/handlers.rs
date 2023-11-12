@@ -1,16 +1,35 @@
-use crate::{dtos::{self}, models};
+use crate::{dtos::{self, TaskWithSubtasks}, models};
 use std::time::{SystemTime, UNIX_EPOCH};
-use gengrpc::performance::{PerformanceClient, StreakDetail};
+use gengrpc::performance::{PerformanceClient, StreakDetail, RoutineDetail, HabitDetail};
 use poem::error::InternalServerError;
 use poem::Result;
 use poem_grpc::Request;
 use poem_openapi::{param::{Path, Query}, payload::Json, ApiResponse, OpenApi};
 use uuid::Uuid;
+use prost_types::Timestamp; // Import Timestamp from prost_types crate
 
 #[derive(ApiResponse)]
 pub enum OptionalTaskResponse {
     #[oai(status = 200)]
     Ok(Json<dtos::Task>),
+    #[oai(status = 404)]
+    /// Specified task not found.
+    NotFound,
+}
+
+#[derive(ApiResponse)]
+pub enum OptionalTaskWithSubtasksResponse {
+    #[oai(status = 200)]
+    Ok(Json<dtos::TaskWithSubtasks>),
+    #[oai(status = 404)]
+    /// Specified task not found.
+    NotFound,
+}
+
+#[derive(ApiResponse)]
+pub enum OptionalSubtaskResponse {
+    #[oai(status = 200)]
+    Ok(Json<dtos::Subtask>),
     #[oai(status = 404)]
     /// Specified task not found.
     NotFound,
@@ -34,12 +53,6 @@ pub enum OptionalRoutineResponse {
     NotFound,
 }
 
-
-
-
-
-
-
 pub struct Api {
     pub pool: sqlx::PgPool,
     pub performance: PerformanceClient
@@ -49,27 +62,73 @@ pub struct Api {
 impl Api {
     #[oai(path = "/task", method = "get")]
     /// List all tasks.
-    pub async fn list_tasks(&self, Query(user_id): Query<Option<Uuid>>) -> Result<Json<Vec<dtos::Task>>> {
+    pub async fn list_tasks(&self, Query(user_id): Query<Option<Uuid>>) -> Result<Json<Vec<dtos::TaskWithSubtasks>>> {
         let tasks = sqlx::query_as!(models::Task, "SELECT * FROM task WHERE (user_id = $1 OR $1 IS NULL)", user_id)
             .fetch_all(&self.pool)
             .await
             .map_err(InternalServerError)?;
 
-        let dto_tasks = tasks.into_iter().map(dtos::Task::from).collect();
-        Ok(Json(dto_tasks))
+            let mut dto_tasks_with_subtasks = Vec::new();
+
+            for task in tasks {
+                let subtasks = sqlx::query_as!(
+                    models::Subtask,
+                    "SELECT * FROM task.subtask WHERE task_id = $1",
+                    task.id
+                )
+                .fetch_all(&self.pool)
+                .await
+                .map_err(InternalServerError)?;
+        
+                let task_with_subtasks = models::TaskWithSubtasks {
+                    id: task.id,
+                    user_id: task.user_id,
+                    community_id: task.community_id,
+                    completed: task.completed,
+                    deadline: task.deadline,
+                    description: task.description.to_string(),
+                    title: task.title.to_string(),
+                    subtasks,
+                };
+        
+                dto_tasks_with_subtasks.push(dtos::TaskWithSubtasks::from(task_with_subtasks));
+            }
+        
+            Ok(Json(dto_tasks_with_subtasks))
     }
 
     #[oai(path = "/task/:id", method = "get")]
     /// Get a task by id.
-    pub async fn get_task(&self, Path(id): Path<Uuid>) -> Result<OptionalTaskResponse> {
+    pub async fn get_task(&self, Path(id): Path<Uuid>) -> Result<OptionalTaskWithSubtasksResponse> {
         let task = sqlx::query_as!(models::Task, "SELECT * FROM task WHERE id = $1", id)
             .fetch_optional(&self.pool)
             .await
             .map_err(InternalServerError)?;
 
         match task.map(dtos::Task::from) {
-            Some(task) => Ok(OptionalTaskResponse::Ok(Json(task))),
-            None => Ok(OptionalTaskResponse::NotFound),
+            Some(task) => {
+                let subtasks = sqlx::query_as!(
+                    models::Subtask,
+                    "select * from task.subtask where task_id=$1",
+                    Some(task.id)
+                )
+                .fetch_all(&self.pool)
+                .await
+                .map_err(InternalServerError)?;
+
+                let task_with_subtasks = models::TaskWithSubtasks{
+                    id: task.id,
+                    user_id: task.user_id,
+                    community_id: task.community_id,
+                    completed: task.completed,
+                    deadline: task.deadline,
+                    description: task.description.to_string(),
+                    title: task.title.to_string(),
+                    subtasks: subtasks
+                };
+                
+                Ok(OptionalTaskWithSubtasksResponse::Ok(Json(dtos::TaskWithSubtasks::from(task_with_subtasks))))},
+            None => Ok(OptionalTaskWithSubtasksResponse::NotFound),
         }
     }
 
@@ -89,6 +148,22 @@ impl Api {
         .map_err(InternalServerError)?;
 
         Ok(Json(dtos::Task::from(task)))
+    }
+
+    #[oai(path = "/subtask", method = "post")]
+    /// Create new Subtask under a Task specified by ID
+    pub async fn add_subtask(&self, Json(subtask): Json<dtos::Subtask>) -> Result<Json<dtos::Subtask>> {
+        let subtask = sqlx::query_as!(
+            models::Subtask,
+            "INSERT INTO subtask (title, task_id) VALUES ($1, $2) RETURNING *",
+            subtask.title,
+            Some(subtask.task_id)
+        )
+        .fetch_one(&self.pool)
+        .await
+        .map_err(InternalServerError)?;
+
+        Ok(Json(dtos::Subtask::from(subtask)))
     }
 
     #[oai(path = "/task/:id", method = "put")]
@@ -136,11 +211,45 @@ impl Api {
         tracing::info!("result: {:?}", completed);
 
         if matches!(completed, Some(Result {completed: Some(false), ..})) {
-            tracing::info!("Adding streak");
+            tracing::info!("Adding streak...");
             self.performance.add_streak(Request::new(StreakDetail {
                 user_id: completed.unwrap().user_id.to_string()
             })).await.map_err(InternalServerError)?;
         }
+
+        Ok(())
+    }
+
+    #[oai(path = "/subtask/:id/check", method = "patch")]
+    /// Check Subtask
+    pub async fn check_subtask(&self, Path(id): Path<Uuid>) -> Result<()> {
+        #[derive(Debug)]
+        struct Result {
+            completed: Option<bool>
+        } 
+        let completed = sqlx::query_as!(Result, "
+        UPDATE task.subtask SET completed = true WHERE id=$1 RETURNING completed", id)
+            .fetch_optional(&self.pool) 
+            .await.map_err(InternalServerError)?;  
+
+        tracing::info!("result: {:?}", completed);
+
+        Ok(())
+    }
+
+    #[oai(path = "/subtask/:id/uncheck", method = "patch")]
+    /// Uncheck Subtask
+    pub async fn complete_subtask(&self, Path(id): Path<Uuid>) -> Result<()> {
+        #[derive(Debug)]
+        struct Result {
+            completed: Option<bool>
+        } 
+        let completed = sqlx::query_as!(Result, "
+        UPDATE task.subtask SET completed = false WHERE id=$1 RETURNING completed", id)
+            .fetch_optional(&self.pool) 
+            .await.map_err(InternalServerError)?;  
+
+        tracing::info!("result: {:?}", completed);
 
         Ok(())
     }
@@ -162,6 +271,25 @@ impl Api {
             None => Ok(OptionalTaskResponse::NotFound),
         }
     }
+
+    #[oai(path = "/subtask/:id", method = "delete")]
+    /// Delete a subtask by id.
+    pub async fn delete_subtask(&self, Path(id): Path<Uuid>) -> Result<OptionalSubtaskResponse> {
+        let subtask = sqlx::query_as!(
+            models::Subtask,
+            "DELETE FROM subtask WHERE id = $1 RETURNING *",
+            id,
+        )
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(InternalServerError)?;
+
+        match subtask.map(dtos::Subtask::from) {
+            Some(subtask) => Ok(OptionalSubtaskResponse::Ok(Json(subtask))),
+            None => Ok(OptionalSubtaskResponse::NotFound),
+        }
+    }
+
 
 
     #[oai(path = "/habit", method = "get")]
@@ -199,7 +327,29 @@ impl Api {
             .map_err(InternalServerError)?;
 
         match habit.map(dtos::Habit::from) {
-            Some(habit) => Ok(OptionalHabitResponse::Ok(Json(habit))),
+            Some(habit) => {
+                tracing::info!("Increasing habit...");
+                    self.performance.trigger_habit(Request::new(HabitDetail {
+                        task_id: id.to_string(),
+                        positive: true,
+                        triggered_at: Some(SystemTime::now().into())
+                    })).await.map_err(InternalServerError)?;
+
+                    tracing::info!("Adding combo...");
+                    struct Result {
+                        user_id: Uuid,
+                    } 
+            
+                    let result: Option<Result> = sqlx::query_as!(Result, "
+                    SELECT user_id FROM habit WHERE id=$1
+                    ", id)
+                        .fetch_optional(&self.pool) 
+                        .await.map_err(InternalServerError)?;  
+                    self.performance.add_streak(Request::new(StreakDetail {
+                        user_id: result.unwrap().user_id.to_string()
+                    })).await.map_err(InternalServerError)?;
+                
+                    Ok(OptionalHabitResponse::Ok(Json(habit)))},
             None => Ok(OptionalHabitResponse::NotFound),
         }
     }
@@ -213,7 +363,29 @@ impl Api {
             .map_err(InternalServerError)?;
 
         match habit.map(dtos::Habit::from) {
-            Some(habit) => Ok(OptionalHabitResponse::Ok(Json(habit))),
+            Some(habit) => {
+                tracing::info!("Decreasing habit...");
+                    self.performance.trigger_habit(Request::new(HabitDetail {
+                        task_id: id.to_string(),
+                        positive: false,
+                        triggered_at: Some(SystemTime::now().into())
+                    })).await.map_err(InternalServerError)?;
+
+                    tracing::info!("Adding combo...");
+                    struct Result {
+                        user_id: Uuid,
+                    } 
+            
+                    let result: Option<Result> = sqlx::query_as!(Result, "
+                    SELECT user_id FROM habit WHERE id=$1
+                    ", id)
+                        .fetch_optional(&self.pool) 
+                        .await.map_err(InternalServerError)?;  
+                    self.performance.reset_streak(Request::new(StreakDetail {
+                        user_id: result.unwrap().user_id.to_string()
+                    })).await.map_err(InternalServerError)?;
+
+                    Ok(OptionalHabitResponse::Ok(Json(habit)))},
             None => Ok(OptionalHabitResponse::NotFound),
         }
     }
@@ -313,14 +485,12 @@ impl Api {
     #[oai(path = "/routine", method = "post")]
     /// Add a new routine.
     pub async fn add_routine(&self, Json(routine): Json<dtos::Routine>) -> Result<Json<dtos::Routine>> {
-        let current_time =  SystemTime::now(); // Get the current time in UTC
 
         let routine = sqlx::query_as!(
             models::Routine,
-            "INSERT INTO routine (title, description, checktime, typena, user_id) VALUES ($1, $2,$3, $4,$5) RETURNING *",
+            "INSERT INTO routine (title, description, typena, user_id) VALUES ($1, $2, $3,$4) RETURNING *",
             routine.title,
             routine.description, 
-           routine.checktime,
             routine.typena,
             routine.user_id 
         )
@@ -379,6 +549,7 @@ impl Api {
     /// Complete routine
     pub async fn complete_routine(&self, Path(id): Path<Uuid>) -> Result<(OptionalRoutineResponse)> {
 
+        // Tell Database
         let routine = sqlx::query_as!(models::Routine, "
         UPDATE routine SET completed = true WHERE id=$1 RETURNING *
         ", id)
@@ -386,12 +557,19 @@ impl Api {
             .await.map_err(InternalServerError)?;  
 
             match routine.map(dtos::Routine::from) {
-                Some(routine) => Ok(OptionalRoutineResponse::Ok(Json(routine))),
+                Some(routine) => {
+        
+                    tracing::info!("Completing routine...");
+                    self.performance.complete_routine(Request::new(RoutineDetail {
+                        task_id: id.to_string(),
+                        completed_at: Some(SystemTime::now().into())
+                    })).await.map_err(InternalServerError)?;
+                    Ok(OptionalRoutineResponse::Ok(Json(routine)))
+                },
                 None => Ok(OptionalRoutineResponse::NotFound),
             }
-
-        
     }
 
+   
     
 }
