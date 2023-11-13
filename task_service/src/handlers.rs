@@ -1,12 +1,11 @@
-use crate::{dtos::{self, TaskWithSubtasks}, models};
-use std::time::{SystemTime, UNIX_EPOCH};
+use crate::{dtos::{self}, models};
+use std::time::{SystemTime};
 use gengrpc::performance::{PerformanceClient, StreakDetail, RoutineDetail, HabitDetail};
 use poem::error::InternalServerError;
 use poem::Result;
 use poem_grpc::Request;
 use poem_openapi::{param::{Path, Query}, payload::Json, ApiResponse, OpenApi};
 use uuid::Uuid;
-use prost_types::Timestamp; // Import Timestamp from prost_types crate
 
 #[derive(ApiResponse)]
 pub enum OptionalTaskResponse {
@@ -126,7 +125,7 @@ impl Api {
                     description: task.description.to_string(),
                     title: task.title.to_string(),
                     created_at: task.created_at,
-                    subtasks: subtasks
+                    subtasks
                 };
                 
                 Ok(OptionalTaskWithSubtasksResponse::Ok(Json(dtos::TaskWithSubtasks::from(task_with_subtasks))))},
@@ -549,7 +548,7 @@ impl Api {
 
     #[oai(path = "/rountine/:id/complete", method = "patch")]
     /// Complete routine
-    pub async fn complete_routine(&self, Path(id): Path<Uuid>) -> Result<(OptionalRoutineResponse)> {
+    pub async fn complete_routine(&self, Path(id): Path<Uuid>) -> Result<OptionalRoutineResponse> {
 
         // Tell Database
         let routine = sqlx::query_as!(models::Routine, "

@@ -39,7 +39,7 @@ impl Api {
             Ok(Some(None)) => Ok(GetResponse::Ok(Json(None))),
             // webhook is not null
             Ok(Some(Some(url))) => {
-                let url = Url::parse(&url).map_err(|err| InternalServerError(err))?;
+                let url = Url::parse(&url).map_err(InternalServerError)?;
                 Ok(GetResponse::Ok(Json(Some(url))))
             }
         }

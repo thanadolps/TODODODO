@@ -1,6 +1,6 @@
 use tracing::info;
 
-use sqlx::{postgres::types::PgInterval, PgPool};
+use sqlx::{PgPool};
 use std::time::Duration;
 use tokio::time::MissedTickBehavior;
 // TODO: come up with better name and design for this

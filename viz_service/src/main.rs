@@ -166,7 +166,7 @@ impl PerformanceRESTService {
         .map_err(InternalServerError)?;
 
         match streak.map(dtos::Streak::from) {
-            Some(streak) => Ok(OptionalStreakResponse::Ok(Json(dtos::Streak::from(streak)))),
+            Some(streak) => Ok(OptionalStreakResponse::Ok(Json(streak))),
             None => Ok(OptionalStreakResponse::NotFound),
         }
     }
@@ -225,7 +225,7 @@ impl PerformanceRESTService {
 
             let dto_habit_history = dtos::HabitHistoryResponse {
                 dates: dates.unwrap_or_default(),
-                growth: growth,
+                growth,
                 task_id: habit.task_id,
             };
             habit_history_response.push(dto_habit_history)
@@ -259,7 +259,7 @@ async fn main() -> color_eyre::Result<()> {
         .with(fmt::layer().with_filter(EnvFilter::from_default_env()))
         .with(if let Some(uri) = env.log_mongo_url.as_ref() {
             Some(
-                tracing_mongo::MongoLogger::new(&uri, "log", "viz_service")
+                tracing_mongo::MongoLogger::new(uri, "log", "viz_service")
                     .await?
                     .layer(),
             )

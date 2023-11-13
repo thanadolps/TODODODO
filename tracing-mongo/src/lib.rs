@@ -1,10 +1,8 @@
-use std::sync::Mutex;
-
 use tokio::sync::mpsc;
 use tracing::Subscriber;
 use tracing_subscriber::{filter::FilterFn, registry::LookupSpan, Layer};
 
-use mongodb::{bson::Document, Client, Collection, Database};
+use mongodb::{bson::Document, Client, Collection};
 
 #[derive(Clone)]
 pub struct MongoLogger {
@@ -23,7 +21,7 @@ impl MongoLogger {
     pub async fn new(uri: &str, db: &str, collection: &str) -> mongodb::error::Result<Self> {
         let client = &Client::with_uri_str(uri).await?;
         let db = client.database(db);
-        let collection = db.collection::<Document>(&collection.to_owned());
+        let collection = db.collection::<Document>(collection);
 
         // Spawn the writer task, and channel the document to it
         let (tx, rx) = mpsc::unbounded_channel();

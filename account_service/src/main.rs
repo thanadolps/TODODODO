@@ -40,7 +40,7 @@ async fn main() -> color_eyre::Result<()> {
         .with(fmt::layer().with_filter(EnvFilter::from_default_env()))
         .with(if let Some(uri) = env.log_mongo_url.as_ref() {
             Some(
-                tracing_mongo::MongoLogger::new(&uri, "log", "account_service")
+                tracing_mongo::MongoLogger::new(uri, "log", "account_service")
                     .await?
                     .layer(),
             )

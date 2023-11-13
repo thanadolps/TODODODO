@@ -9,7 +9,7 @@ use serde::Deserialize;
 use sqlx::PgPool;
 use tracing::info;
 
-use time::{macros::offset, OffsetDateTime, UtcOffset};
+use time::{macros::offset, OffsetDateTime};
 
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 use uuid::Uuid;
@@ -83,7 +83,7 @@ async fn main() -> Result<()> {
         .with(fmt::layer().with_filter(EnvFilter::from_default_env()))
         .with(if let Some(uri) = env.log_mongo_url.as_ref() {
             Some(
-                tracing_mongo::MongoLogger::new(&uri, "log", "notification_service")
+                tracing_mongo::MongoLogger::new(uri, "log", "notification_service")
                     .await?
                     .layer(),
             )
