@@ -79,7 +79,10 @@ services:
       retries: 10
 
   notification:
-    image: "debian"
+    build:
+      dockerfile_inline: | 
+        FROM debian
+        RUN apt-get update && apt-get install -y ca-certificates
     working_dir: "/app"
     volumes:
       - "./notification_service:/app"
