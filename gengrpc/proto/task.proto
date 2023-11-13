@@ -13,6 +13,6 @@ message AddCommunityTaskRequest {
 
     string title = 4;
     string description = 5;
-    optional google.protobuf.Timestamp deadline = 6;
+    google.protobuf.Timestamp deadline = 6;
     repeated string subtasks = 7;
 }
