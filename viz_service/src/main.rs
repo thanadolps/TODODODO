@@ -171,17 +171,17 @@ impl PerformanceRESTService {
         }
     }
 
-    #[oai(path = "/routine/:task_id", method = "get")]
-    pub async fn get_routine_completion(
+    #[oai(path = "/routine", method = "get")]
+    pub async fn list_routine_completions(
         &self,
-        Path(task_id): Path<Uuid>,
+        Query(task_ids): Query<Vec<Uuid>>,
         Query(start_date): Query<Option<DateTime>>,
         Query(end_date): Query<Option<DateTime>>,
     ) -> Result<Json<Vec<dtos::RoutineCompletion>>> {
         let rc = sqlx::query_as!(
             models::RoutineCompletion,
-            "SELECT * FROM score.routine_completion WHERE (completed_at >= $1 OR $1 IS NULL) AND (completed_at <= $2 OR $2 IS NULL) AND (task_id=$3)",
-            start_date, end_date, task_id
+            "SELECT * FROM score.routine_completion WHERE (completed_at >= $1 OR $1 IS NULL) AND (completed_at <= $2 OR $2 IS NULL) AND (task_id=ANY($3))",
+            start_date, end_date, &task_ids
         )
         .fetch_all(&self.pool)
         .await
@@ -191,38 +191,47 @@ impl PerformanceRESTService {
         Ok(Json(dto_routine_completions))
     }
 
-    #[oai(path = "/habit/:task_id", method = "get")]
-    pub async fn get_habit_history(
+    #[oai(path = "/habit", method = "get")]
+    pub async fn list_habit_histories(
         &self,
-        Path(task_id): Path<Uuid>,
+        Query(task_ids): Query<Vec<Uuid>>,
         Query(start_date): Query<Option<DateTime>>,
         Query(end_date): Query<Option<DateTime>>,
-    ) -> Result<Json<dtos::HabitHistoryResponse>> {
-        let hhs = sqlx::query!(
-            "SELECT * FROM score.habit_history WHERE (triggered_at >= $1 OR $1 IS NULL) AND (triggered_at <= $2 OR $2 IS NULL) AND (task_id=$3)",
-            start_date, end_date, task_id
+    ) -> Result<Json<Vec<dtos::HabitHistoryResponse>>> {
+        let habits = sqlx::query!(
+            "SELECT task_id, ARRAY_AGG(habit_history.triggered_at) AS dates, 
+            ARRAY_AGG(habit_history.positive) AS positives FROM score.habit_history 
+            WHERE (triggered_at >= $1 OR $1 IS NULL) AND 
+            (triggered_at <= $2 OR $2 IS NULL) AND 
+            (task_id=ANY($3)) GROUP BY (task_id)",
+            start_date, end_date, &task_ids
         )
         .fetch_all(&self.pool)
         .await
         .map_err(InternalServerError)?;
 
-        let dates = hhs.iter().map(|hh| hh.triggered_at).collect();
-        let growth = hhs
-            .iter()
-            .scan(1.0, |point, hh| {
-                *point *= if hh.positive { 1.01 } else { 0.99 };
-                let rounded_point = (*point * 1000_f64).round() / 1000.0;
-                Some(rounded_point)
-            })
-            .collect();
+        let mut habit_history_response = Vec::new();
 
-        let dto_habit_history = dtos::HabitHistoryResponse {
-            dates: dates,
-            growth: growth,
-            task_id,
-        };
+        for habit in habits {
+            let dates = habit.dates;
+        let growth = habit.positives.unwrap_or_default()
+                .iter()
+                .scan(1.0, |point, positive| {
+                    *point *= if *positive { 1.01 } else { 0.99 };
+                    let rounded_point = (*point * 1000_f64).round() / 1000.0;
+                    Some(rounded_point)
+                })
+                .collect();
 
-        Ok(Json(dto_habit_history))
+            let dto_habit_history = dtos::HabitHistoryResponse {
+                dates: dates.unwrap_or_default(),
+                growth: growth,
+                task_id: habit.task_id,
+            };
+            habit_history_response.push(dto_habit_history)
+        }
+
+        Ok(Json(habit_history_response))
     }
 }
 
