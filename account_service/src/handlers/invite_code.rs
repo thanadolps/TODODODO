@@ -228,6 +228,7 @@ impl Api {
     async fn delete_invite_code(
         &self,
         Path(id): Path<Uuid>,
+        Path(code): Path<Uuid>,
         JWTAuth(claim): JWTAuth,
     ) -> Result<DeleteResponse> {
         match check_community(&self.pool, id, Some(claim.sub)).await {
@@ -242,7 +243,7 @@ impl Api {
             DELETE FROM invite_code
             WHERE id = $1
             ",
-            id
+            code
         )
         .execute(&self.pool)
         .await
