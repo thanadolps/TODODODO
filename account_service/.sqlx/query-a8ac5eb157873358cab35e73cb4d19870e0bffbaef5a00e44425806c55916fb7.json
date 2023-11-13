@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select account_id from user_join_community where community_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "account_id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "a8ac5eb157873358cab35e73cb4d19870e0bffbaef5a00e44425806c55916fb7"
+}

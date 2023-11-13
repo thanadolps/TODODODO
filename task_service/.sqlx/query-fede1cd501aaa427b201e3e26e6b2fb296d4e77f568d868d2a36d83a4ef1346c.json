@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            WITH task AS (\n                INSERT INTO task (title, description, deadline, community_id, user_id)\n                SELECT $1, $2, $3, $4, * FROM UNNEST($5::uuid[])\n                RETURNING id\n            )\n            INSERT INTO subtask (title, task_id)\n            SELECT st.*, task.id FROM UNNEST($6::text[]) as st CROSS JOIN task;\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Timestamptz",
+        "Uuid",
+        "UuidArray",
+        "TextArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "fede1cd501aaa427b201e3e26e6b2fb296d4e77f568d868d2a36d83a4ef1346c"
+}
