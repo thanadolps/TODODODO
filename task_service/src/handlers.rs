@@ -73,7 +73,7 @@ impl Api {
             for task in tasks {
                 let subtasks = sqlx::query_as!(
                     models::Subtask,
-                    "SELECT * FROM task.subtask WHERE task_id = $1",
+                    "SELECT * FROM task.subtask WHERE task_id = $1 ORDER BY created_at ASC",
                     task.id
                 )
                 .fetch_all(&self.pool)
@@ -109,7 +109,7 @@ impl Api {
             Some(task) => {
                 let subtasks = sqlx::query_as!(
                     models::Subtask,
-                    "select * from task.subtask where task_id=$1",
+                    "select * from task.subtask where task_id=$1 ORDER BY created_at ASC",
                     Some(task.id)
                 )
                 .fetch_all(&self.pool)

@@ -44,6 +44,8 @@ pub struct Subtask {
     #[oai(read_only)]
     pub completed: bool,
     pub task_id: Uuid,
+    #[oai(read_only)]
+    pub created_at: Option<DateTime>,
 }
 
 #[derive(Object, StructMapper)]

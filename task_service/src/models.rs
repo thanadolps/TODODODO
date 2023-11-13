@@ -54,4 +54,5 @@ pub struct Subtask {
     pub title: String,
     pub completed: bool,
     pub task_id: Uuid,
+    pub created_at: Option<DateTime>,
 }
