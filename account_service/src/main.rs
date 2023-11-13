@@ -2,9 +2,12 @@ mod handlers;
 mod jwt;
 mod models;
 
+use gengrpc::community_task::CommunityTaskServiceClient;
+
 use color_eyre::eyre::Context;
 use jsonwebtoken::{DecodingKey, EncodingKey};
 use poem::{listener::TcpListener, middleware, EndpointExt, Route, Server};
+use poem_grpc::ClientConfig;
 use poem_openapi::OpenApiService;
 use serde::Deserialize;
 use sqlx::postgres::PgPool;
@@ -15,6 +18,7 @@ struct Env {
     port: u16,
     database_url: String,
     jwt_secret: String,
+    task_grpc_url: String,
     #[serde(alias = "railway_public_domain")]
     public_domain: Option<String>,
     log_mongo_url: Option<String>,
@@ -54,6 +58,10 @@ async fn main() -> color_eyre::Result<()> {
     let encode_key = EncodingKey::from_base64_secret(env.jwt_secret.as_str())?;
     let decode_key = DecodingKey::from_base64_secret(env.jwt_secret.as_str())?;
 
+    // GRPC
+    let task_grpc =
+        CommunityTaskServiceClient::new(ClientConfig::builder().uri(env.task_grpc_url).build()?);
+
     // Handler
     let handler = (
         handlers::account::Api {
@@ -61,7 +69,11 @@ async fn main() -> color_eyre::Result<()> {
             encode_key,
         },
         handlers::community::Api { pool: pool.clone() },
-        handlers::invite_code::Api { pool },
+        handlers::invite_code::Api { pool: pool.clone() },
+        handlers::community_task::Api {
+            pool: pool.clone(),
+            task_grpc,
+        },
     );
 
     // OpenAPI
@@ -75,7 +87,8 @@ async fn main() -> color_eyre::Result<()> {
         format!("http://localhost:{}", env.port)
     };
     let api_service =
-        OpenApiService::new(handler, "TODODODO - Account Service", "1.0").server(server_url);
+        OpenApiService::new(handler, "TODODODO - Account and Community Service", "1.0")
+            .server(server_url);
     let ui = api_service.openapi_explorer();
     let spec = api_service.spec_endpoint();
 

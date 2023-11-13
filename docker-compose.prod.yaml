@@ -65,6 +65,7 @@ services:
       - "PUBLIC_DOMAIN=${GATEWAY_URL}/account"
       - "PORT=8002"
       - "DATABASE_URL=postgresql://account:password@dbts:5432/postgres?search_path=account"
+      - "TASK_GRPC_URL=http://task:8004/grpc"
       - "LOG_MONGO_URL=mongodb://mongo-log:27017"
       - "JWT_SECRET=${JWT_SECRET}"
     ports:

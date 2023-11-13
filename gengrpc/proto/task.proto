@@ -1,0 +1,18 @@
+syntax="proto3";
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+package community_task;
+
+service CommunityTaskService {
+    rpc AddCommunityTask (AddCommunityTaskRequest) returns (google.protobuf.Empty);
+} 
+
+message AddCommunityTaskRequest {
+    string community_id = 2;
+    repeated string members = 3;
+
+    string title = 4;
+    string description = 5;
+    optional google.protobuf.Timestamp deadline = 6;
+    repeated string subtasks = 7;
+}

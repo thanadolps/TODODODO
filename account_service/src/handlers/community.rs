@@ -149,6 +149,20 @@ impl Api {
         Ok(Json(communities))
     }
 
+    /// List member of community
+    #[oai(path = "/community/:id/member", method = "get")]
+    async fn list_member(&self, Path(id): Path<Uuid>) -> Result<Json<Vec<Uuid>>> {
+        let members = sqlx::query!(
+            "select account_id from user_join_community where community_id = $1",
+            id
+        )
+        .fetch_all(&self.pool)
+        .await
+        .map_err(InternalServerError)?;
+
+        Ok(Json(members.into_iter().map(|m| m.account_id).collect()))
+    }
+
     /// Join public community
     ///
     /// Join user to a community. If the community is private, the user must be the owner.

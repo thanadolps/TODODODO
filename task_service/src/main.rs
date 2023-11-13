@@ -1,4 +1,5 @@
 mod dtos;
+mod grpc;
 mod handlers;
 mod models;
 mod noti;
@@ -8,7 +9,7 @@ use std::time::Duration;
 
 use color_eyre::eyre::Context;
 use poem::{listener::TcpListener, middleware, EndpointExt, Route, Server};
-use poem_grpc::ClientConfig;
+use poem_grpc::{ClientConfig, RouteGrpc};
 use poem_openapi::OpenApiService;
 use sqlx::postgres::PgPool;
 
@@ -87,10 +88,12 @@ async fn main() -> color_eyre::Result<()> {
     let spec = api_service.spec_endpoint();
 
     // Route
+    let route_grpc = RouteGrpc::new().add_service(grpc::task_service_server(pool.clone()));
     let route = Route::new()
         .nest("/", api_service)
         .nest("/docs", ui)
         .nest("/docs-json", spec)
+        .nest("/grpc", route_grpc)
         .with(middleware::Cors::default())
         .with(middleware::CatchPanic::default())
         .with(middleware::Tracing);
