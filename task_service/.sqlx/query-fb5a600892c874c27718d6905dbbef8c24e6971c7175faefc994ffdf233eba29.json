@@ -22,6 +22,11 @@
         "ordinal": 3,
         "name": "task_id",
         "type_info": "Uuid"
+      },
+      {
+        "ordinal": 4,
+        "name": "created_at",
+        "type_info": "Timestamptz"
       }
     ],
     "parameters": {
@@ -33,7 +38,8 @@
       false,
       false,
       false,
-      false
+      false,
+      true
     ]
   },
   "hash": "fb5a600892c874c27718d6905dbbef8c24e6971c7175faefc994ffdf233eba29"

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "select * from task.subtask where task_id=$1",
+  "query": "select * from task.subtask where task_id=$1 ORDER BY created_at ASC",
   "describe": {
     "columns": [
       {
@@ -22,6 +22,11 @@
         "ordinal": 3,
         "name": "task_id",
         "type_info": "Uuid"
+      },
+      {
+        "ordinal": 4,
+        "name": "created_at",
+        "type_info": "Timestamptz"
       }
     ],
     "parameters": {
@@ -33,8 +38,9 @@
       false,
       false,
       false,
-      false
+      false,
+      true
     ]
   },
-  "hash": "238beca60f206a4015be6d1567c0a72ed96a7b36eb81d29a9ef035e6aba94b16"
+  "hash": "870ac8c4937c818e3af46a88ee118cc42a019d353540b83f80464b94686e7c98"
 }
