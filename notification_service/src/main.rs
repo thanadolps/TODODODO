@@ -9,7 +9,7 @@ use serde::Deserialize;
 use sqlx::PgPool;
 use tracing::info;
 
-use time::OffsetDateTime;
+use time::{macros::offset, OffsetDateTime, UtcOffset};
 
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 use uuid::Uuid;
@@ -29,9 +29,12 @@ async fn send_notification(
     notification: &NotificationDetail,
     webhook_url: Option<&str>,
 ) -> Result<()> {
+    let deadline = notification.deadline.to_offset(offset!(+7));
+    let within = notification.deadline - OffsetDateTime::now_utc();
+
     let msg = format!(
         "This is a notification for your task **{}** ({}). Description: {}. Deadline: {} (within {})",
-        notification.title, notification.task_id, notification.description, notification.deadline, (notification.deadline - OffsetDateTime::now_utc())
+        notification.title, notification.task_id, notification.description, deadline, within
     );
 
     tracing::info!(msg, "Sending notification");
