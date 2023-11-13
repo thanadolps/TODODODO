@@ -39,5 +39,10 @@ new-service:
 
 .PHONY: prepare-all
 prepare-all:
+ifeq ($(WINDOWS), Windows_NT)
+	# Prepare sqlx for offline used on all services with a .env file containing DATABASE_URL
+	Get-ChildItem -Path . -Filter .env -Recurse -File | ForEach-Object { if ((Get-Content $_.FullName) -match "DATABASE_URL") { echo "Preparing $($_.DirectoryName)" && cd $_.DirectoryName && cargo sqlx prepare && echo "Finished $($_.DirectoryName)" } }
+else 
 	# Prepare sqlx for offline used on all services with a .env file containing DATABASE_URL
 	find . -type d -name postgres-data -prune -o -type f -name .env -exec grep -q "DATABASE_URL" {} \; -exec sh -c 'echo "Preparing $$(dirname "{}")" && cd "$$(dirname "{}")" && cargo sqlx prepare && echo "Finished $$(dirname "{}")"' \;
+endif
