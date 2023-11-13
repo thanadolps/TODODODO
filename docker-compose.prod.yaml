@@ -62,7 +62,7 @@ services:
       - "./account_service:/app"
     command: "./account_service"
     environment:
-      - "PUBLIC_DOMAIN=${PUBLIC_DOMAIN}"
+      - "PUBLIC_DOMAIN=${GATEWAY_URL}/account"
       - "PORT=8002"
       - "DATABASE_URL=postgresql://account:password@dbts:5432/postgres?search_path=account"
       - "LOG_MONGO_URL=mongodb://mongo-log:27017"
@@ -85,7 +85,7 @@ services:
       - "./notification_service:/app"
     command: "./notification_service"
     environment:
-      - "PUBLIC_DOMAIN=${PUBLIC_DOMAIN}"
+      - "PUBLIC_DOMAIN=${GATEWAY_URL}/notification"
       - "DATABASE_URL=postgresql://notification:password@dbts:5432/postgres?search_path=notification"
       - "LOG_MONGO_URL=mongodb://mongo-log:27017"
       - "PORT=8005"
@@ -110,7 +110,7 @@ services:
       - "./task_service:/app"
     command: "./task_service"
     environment:
-      - "PUBLIC_DOMAIN=${PUBLIC_DOMAIN}"
+      - "PUBLIC_DOMAIN=${GATEWAY_URL}/task"
       - "PORT=8004"
       - "DATABASE_URL=postgresql://task:password@dbts:5432/postgres?search_path=task"
       - "LOG_MONGO_URL=mongodb://mongo-log:27017"
@@ -137,7 +137,7 @@ services:
     command: "./viz_service"
     restart: always
     environment:
-      - "PUBLIC_DOMAIN=${PUBLIC_DOMAIN}"
+      - "PUBLIC_DOMAIN=${GATEWAY_URL}/performance"
       - "PORT=8003"
       - "DATABASE_URL=postgresql://score:password@dbts:5432/postgres?search_path=score"
       - "LOG_MONGO_URL=mongodb://mongo-log:27017"

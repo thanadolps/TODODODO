@@ -104,7 +104,7 @@ async fn main() -> Result<()> {
     // OpenAPI
     let server_url = if let Some(domain) = env.public_domain {
         if domain.contains("://") {
-            format!("{}:{}", domain, env.port)
+            domain
         } else {
             format!("https://{}:{}", domain, env.port)
         }
