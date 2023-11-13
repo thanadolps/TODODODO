@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT * FROM routine WHERE (user_id = $1 OR $1 IS NULL)",
+  "query": "SELECT * FROM routine WHERE (user_id = $1 OR $1 IS NULL) ORDER BY created_at ASC",
   "describe": {
     "columns": [
       {
@@ -37,6 +37,11 @@
         "ordinal": 6,
         "name": "completed",
         "type_info": "Bool"
+      },
+      {
+        "ordinal": 7,
+        "name": "created_at",
+        "type_info": "Timestamptz"
       }
     ],
     "parameters": {
@@ -51,8 +56,9 @@
       false,
       false,
       false,
-      false
+      false,
+      true
     ]
   },
-  "hash": "e487c87c1d0bd0a44bb86843119ba09d02ef4e642e03ba0742ee1f525c1705f1"
+  "hash": "d5b3b57da3ea20f7cffd0bdccf2e0a2d5da3e54b56acbf0e50ad7bd5605140f9"
 }

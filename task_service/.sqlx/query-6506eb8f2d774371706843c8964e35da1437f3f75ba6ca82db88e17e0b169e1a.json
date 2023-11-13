@@ -37,6 +37,11 @@
         "ordinal": 6,
         "name": "completed",
         "type_info": "Bool"
+      },
+      {
+        "ordinal": 7,
+        "name": "created_at",
+        "type_info": "Timestamptz"
       }
     ],
     "parameters": {
@@ -51,7 +56,8 @@
       false,
       false,
       false,
-      false
+      false,
+      true
     ]
   },
   "hash": "6506eb8f2d774371706843c8964e35da1437f3f75ba6ca82db88e17e0b169e1a"

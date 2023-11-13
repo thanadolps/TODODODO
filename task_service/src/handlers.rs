@@ -63,7 +63,7 @@ impl Api {
     #[oai(path = "/task", method = "get")]
     /// List all tasks.
     pub async fn list_tasks(&self, Query(user_id): Query<Option<Uuid>>) -> Result<Json<Vec<dtos::TaskWithSubtasks>>> {
-        let tasks = sqlx::query_as!(models::Task, "SELECT * FROM task WHERE (user_id = $1 OR $1 IS NULL)", user_id)
+        let tasks = sqlx::query_as!(models::Task, "SELECT * FROM task WHERE (user_id = $1 OR $1 IS NULL) ORDER BY created_at ASC", user_id)
             .fetch_all(&self.pool)
             .await
             .map_err(InternalServerError)?;
@@ -88,6 +88,7 @@ impl Api {
                     deadline: task.deadline,
                     description: task.description.to_string(),
                     title: task.title.to_string(),
+                    created_at: task.created_at,
                     subtasks,
                 };
         
@@ -124,6 +125,7 @@ impl Api {
                     deadline: task.deadline,
                     description: task.description.to_string(),
                     title: task.title.to_string(),
+                    created_at: task.created_at,
                     subtasks: subtasks
                 };
                 
@@ -295,7 +297,7 @@ impl Api {
     #[oai(path = "/habit", method = "get")]
     /// List all habits.
     pub async fn list_habits(&self, Query(user_id): Query<Option<Uuid>>) -> Result<Json<Vec<dtos::Habit>>> {
-        let habits = sqlx::query_as!(models::Habit, "SELECT * FROM habit WHERE (user_id = $1 OR $1 IS NULL)", user_id)
+        let habits = sqlx::query_as!(models::Habit, "SELECT * FROM habit WHERE (user_id = $1 OR $1 IS NULL) ORDER BY created_at ASC", user_id)
             .fetch_all(&self.pool)
             .await
             .map_err(InternalServerError)?;
@@ -459,7 +461,7 @@ impl Api {
     #[oai(path = "/routine", method = "get")]
     /// List all routines.
     pub async fn list_routines(&self, Query(user_id): Query<Option<Uuid>>) -> Result<Json<Vec<dtos::Routine>>> {
-        let routines = sqlx::query_as!(models::Routine, "SELECT * FROM routine WHERE (user_id = $1 OR $1 IS NULL)", user_id)
+        let routines = sqlx::query_as!(models::Routine, "SELECT * FROM routine WHERE (user_id = $1 OR $1 IS NULL) ORDER BY created_at ASC", user_id)
             .fetch_all(&self.pool)
             .await
             .map_err(InternalServerError)?;

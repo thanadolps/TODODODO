@@ -13,6 +13,7 @@ pub struct Task {
 
     pub user_id: Uuid,
     pub community_id: Option<Uuid>,
+    pub created_at: Option<DateTime>,
 }
 
 #[derive(FromRow, Debug)]
@@ -26,6 +27,7 @@ pub struct TaskWithSubtasks {
     pub user_id: Uuid,
     pub community_id: Option<Uuid>,
     pub subtasks: Vec<Subtask>,
+    pub created_at: Option<DateTime>,
 }
 
 #[derive(FromRow, Debug)]
@@ -35,6 +37,7 @@ pub struct Habit {
     pub description: String,
     pub score: i32,
     pub user_id: Uuid,
+    pub created_at: Option<DateTime>,
 }
 
 #[derive(FromRow, Debug)]
@@ -46,6 +49,7 @@ pub struct Routine {
     pub typena: String,
     pub user_id: Uuid,
     pub completed: bool,
+    pub created_at: Option<DateTime>,
 }
 
 #[derive(FromRow, Debug)]

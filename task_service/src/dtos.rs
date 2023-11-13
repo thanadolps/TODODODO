@@ -17,6 +17,8 @@ pub struct Task {
 
     pub user_id: Uuid,
     pub community_id: Option<Uuid>,
+    #[oai(read_only)]
+    pub created_at: Option<DateTime>,
 }
 
 #[derive(Object, StructMapper)]
@@ -33,6 +35,8 @@ pub struct TaskWithSubtasks {
     pub user_id: Uuid,
     pub community_id: Option<Uuid>,
     pub subtasks: Vec<Subtask>,
+    #[oai(read_only)]
+    pub created_at: Option<DateTime>,
 }
 
 #[derive(Object, StructMapper)]
@@ -58,6 +62,8 @@ pub struct Habit {
     #[oai(read_only)]
     pub score: i32,
     pub user_id: Uuid,
+    #[oai(read_only)]
+    pub created_at: Option<DateTime>,
 }
 
 #[derive(Object, StructMapper)]
@@ -73,4 +79,6 @@ pub struct Routine {
     pub user_id: Uuid,
     #[oai(read_only)]
     pub completed: bool,
+    #[oai(read_only)]
+    pub created_at: Option<DateTime>,
 }

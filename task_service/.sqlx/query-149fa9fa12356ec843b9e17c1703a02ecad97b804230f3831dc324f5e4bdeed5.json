@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT * FROM habit WHERE (user_id = $1 OR $1 IS NULL)",
+  "query": "SELECT * FROM habit WHERE (user_id = $1 OR $1 IS NULL) ORDER BY created_at ASC",
   "describe": {
     "columns": [
       {
@@ -27,6 +27,11 @@
         "ordinal": 4,
         "name": "user_id",
         "type_info": "Uuid"
+      },
+      {
+        "ordinal": 5,
+        "name": "created_at",
+        "type_info": "Timestamptz"
       }
     ],
     "parameters": {
@@ -39,8 +44,9 @@
       false,
       false,
       false,
-      false
+      false,
+      true
     ]
   },
-  "hash": "9e43fd946b18bab1cf452ad5dce4506141f87a8cb5687765ee5f91c7ced156e7"
+  "hash": "149fa9fa12356ec843b9e17c1703a02ecad97b804230f3831dc324f5e4bdeed5"
 }
