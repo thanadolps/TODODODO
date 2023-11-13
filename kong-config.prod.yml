@@ -5,25 +5,25 @@ _transform: true
 
 services:
   - name: account-service
-    url: http://host.docker.internal:8002
+    url: http://account:8002
     routes:
         - paths:
           - /account
           strip_path: true
   - name: performance-service
-    url: http://host.docker.internal:8003
+    url: http://viz:8003
     routes:
         - paths:
           - /performance
           strip_path: true
   - name: task-service
-    url: http://host.docker.internal:8004
+    url: http://task:8004
     routes:
         - paths:
           - /task
           strip_path: true
   - name: notification-service
-    url: http://host.docker.internal:8005
+    url: http://notification:8005
     routes:
         - paths:
           - /notification

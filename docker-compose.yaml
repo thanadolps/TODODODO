@@ -55,3 +55,6 @@ services:
       - 8443:8443
       - 9101:8001
       - 8444:8444
+    # https://stackoverflow.com/questions/24319662/from-inside-of-a-docker-container-how-do-i-connect-to-the-localhost-of-the-mach
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
