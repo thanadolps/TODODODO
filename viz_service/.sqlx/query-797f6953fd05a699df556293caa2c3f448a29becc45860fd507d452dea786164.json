@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT * FROM score.habit_history WHERE (triggered_at >= $1 OR $1 IS NULL) AND (triggered_at <= $2 OR $2 IS NULL) AND (task_id=$3)",
+  "query": "SELECT * FROM score.routine_completion WHERE (completed_at >= $1 OR $1 IS NULL) AND (completed_at <= $2 OR $2 IS NULL) AND (task_id=ANY($3))",
   "describe": {
     "columns": [
       {
@@ -10,12 +10,7 @@
       },
       {
         "ordinal": 1,
-        "name": "positive",
-        "type_info": "Bool"
-      },
-      {
-        "ordinal": 2,
-        "name": "triggered_at",
+        "name": "completed_at",
         "type_info": "Timestamptz"
       }
     ],
@@ -23,14 +18,13 @@
       "Left": [
         "Timestamptz",
         "Timestamptz",
-        "Uuid"
+        "UuidArray"
       ]
     },
     "nullable": [
       false,
-      false,
       false
     ]
   },
-  "hash": "db23fa890ad9981fc90bec0a299bfdc3f2479d1837920605303a270ac20a79dd"
+  "hash": "797f6953fd05a699df556293caa2c3f448a29becc45860fd507d452dea786164"
 }

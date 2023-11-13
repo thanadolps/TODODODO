@@ -1,0 +1,36 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT task_id, ARRAY_AGG(habit_history.triggered_at) AS dates, \n            ARRAY_AGG(habit_history.positive) AS positives FROM score.habit_history \n            WHERE (triggered_at >= $1 OR $1 IS NULL) AND \n            (triggered_at <= $2 OR $2 IS NULL) AND \n            (task_id=ANY($3)) GROUP BY (task_id)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "task_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "dates",
+        "type_info": "TimestamptzArray"
+      },
+      {
+        "ordinal": 2,
+        "name": "positives",
+        "type_info": "BoolArray"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Timestamptz",
+        "Timestamptz",
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "cd5d3e0359c785d3555f2a06aba6a733ecae2983a4c4d3e88a201e2d6d2e93af"
+}
