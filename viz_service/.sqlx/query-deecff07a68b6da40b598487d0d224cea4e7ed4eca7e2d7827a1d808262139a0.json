@@ -1,0 +1,26 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT ARRAY(\n                SELECT \n                    CASE \n                        WHEN EXISTS (\n                            SELECT 1 \n                            FROM score.routine_completion rc \n                            WHERE date_trunc($1, rc.completed_at::date) = s.series_date and task_id=$2\n                        ) THEN true\n                        ELSE false\n                    END\n                FROM (SELECT date_trunc($1, generate_series) AS series_date\n                FROM generate_series($3::date, $4::date, $5::interval) AS generate_series) as s\n            ) AS result_array;\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "result_array",
+        "type_info": "BoolArray"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Uuid",
+        "Date",
+        "Date",
+        "Interval"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "deecff07a68b6da40b598487d0d224cea4e7ed4eca7e2d7827a1d808262139a0"
+}

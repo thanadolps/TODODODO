@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT date_trunc($1, generate_series) as \"dates!\" FROM generate_series($2::date, $3::date, $4::interval) AS generate_series;",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "dates!",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Date",
+        "Date",
+        "Interval"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "3aa2663d64b9a1233afeac333d18e40f90625657c91cfad9367818cad0648ece"
+}

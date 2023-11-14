@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT * FROM score.routine_completion WHERE (completed_at >= $1 OR $1 IS NULL) AND (completed_at <= $2 OR $2 IS NULL) AND (task_id=ANY($3))",
+  "query": "SELECT * FROM score.routine_completion WHERE (task_id=ANY($1))",
   "describe": {
     "columns": [
       {
@@ -12,19 +12,23 @@
         "ordinal": 1,
         "name": "completed_at",
         "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 2,
+        "name": "typena",
+        "type_info": "Text"
       }
     ],
     "parameters": {
       "Left": [
-        "Timestamptz",
-        "Timestamptz",
         "UuidArray"
       ]
     },
     "nullable": [
       false,
+      false,
       false
     ]
   },
-  "hash": "797f6953fd05a699df556293caa2c3f448a29becc45860fd507d452dea786164"
+  "hash": "554895a0265f5e189d936ab924184493a79dca3245973e5873cdbfcb061efa91"
 }
