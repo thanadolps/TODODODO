@@ -120,7 +120,7 @@ impl Api {
         }
     }
 
-    #[oai(path = "/rountine/:id/complete", method = "patch")]
+    #[oai(path = "/routine/:id/complete", method = "patch")]
     /// Complete routine
     pub async fn complete_routine(&self, Path(id): Path<Uuid>) -> Result<OptionalRoutineResponse> {
 
