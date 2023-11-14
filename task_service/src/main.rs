@@ -28,6 +28,9 @@ struct Env {
     #[serde(alias = "railway_public_domain")]
     public_domain: Option<String>,
     log_mongo_url: Option<String>,
+
+    check_period: Option<u64>,
+    lead_time: Option<u64>,
 }
 
 #[tokio::main]
@@ -104,8 +107,8 @@ async fn main() -> color_eyre::Result<()> {
 
         tokio::spawn(noti::watch_notification_task(
             pool.clone(),
-            Duration::from_secs(10),
-            Duration::from_secs(30 * 60),
+            Duration::from_secs(env.check_period.unwrap_or(30)),
+            Duration::from_secs(env.lead_time.unwrap_or(30 * 60)),
             channel,
         ));
 

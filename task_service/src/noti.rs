@@ -14,7 +14,11 @@ pub async fn watch_notification_task(
     lead_time: Duration,
     channel: Channel,
 ) {
-    tracing::info!("watching for deadline");
+    tracing::info!(
+        check_period = ?check_period,
+        lead_time = ?lead_time,
+        "watching for deadline"
+    );
 
     let mut interval = tokio::time::interval(check_period);
     interval.set_missed_tick_behavior(MissedTickBehavior::Delay);
