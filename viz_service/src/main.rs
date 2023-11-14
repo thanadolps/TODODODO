@@ -15,7 +15,7 @@ use poem_openapi::{
 };
 use sqlx::{postgres::types::PgInterval, PgPool};
 use time::macros::offset;
-use time::{Date, OffsetDateTime as DateTime};
+use time::{OffsetDateTime as DateTime};
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 use uuid::Uuid;
 struct PerformanceGRPCService {
