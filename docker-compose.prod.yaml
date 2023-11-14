@@ -57,6 +57,7 @@ services:
 
   account:
     image: "debian"
+    restart: on-failure
     working_dir: "/app"
     volumes:
       - "./account_service:/app"
@@ -84,6 +85,7 @@ services:
       dockerfile_inline: | 
         FROM debian
         RUN apt-get update && apt-get install -y ca-certificates
+    restart: on-failure
     working_dir: "/app"
     volumes:
       - "./notification_service:/app"
@@ -109,6 +111,7 @@ services:
 
   task:
     image: "debian"
+    restart: on-failure
     working_dir: "/app"
     volumes:
       - "./task_service:/app"
@@ -135,11 +138,11 @@ services:
   
   viz:
     image: "debian"
+    restart: on-failure
     working_dir: "/app"
     volumes:
       - "./viz_service:/app"
     command: "./viz_service"
-    restart: always
     environment:
       - "PUBLIC_DOMAIN=${GATEWAY_URL}/performance"
       - "PORT=8003"
