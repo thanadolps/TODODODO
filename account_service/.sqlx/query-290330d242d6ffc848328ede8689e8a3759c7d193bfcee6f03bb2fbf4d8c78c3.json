@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            DELETE FROM community_task\n            WHERE id = $1 AND community_id = $2\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "290330d242d6ffc848328ede8689e8a3759c7d193bfcee6f03bb2fbf4d8c78c3"
+}

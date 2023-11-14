@@ -2,7 +2,7 @@ use std::time::SystemTime;
 
 use gengrpc::community_task::{AddCommunityTaskRequest, CommunityTaskServiceClient};
 use poem::{error::InternalServerError, http::StatusCode, Result};
-use poem_grpc::{Request};
+use poem_grpc::Request;
 use poem_openapi::{param::Path, payload::Json, ApiResponse, Object, OpenApi};
 use sqlx::PgPool;
 use time::OffsetDateTime;
@@ -171,15 +171,20 @@ impl Api {
         Ok(Json(task))
     }
 
-    #[oai(path = "/community/task/:id", method = "delete")]
+    #[oai(path = "/community/:cid/task/:id", method = "delete")]
     /// Delete a task in community
-    async fn delete_community_task(&self, Path(id): Path<Uuid>) -> Result<DeleteResponse> {
+    async fn delete_community_task(
+        &self,
+        Path(cid): Path<Uuid>,
+        Path(id): Path<Uuid>,
+    ) -> Result<DeleteResponse> {
         let result = sqlx::query!(
             r#"
             DELETE FROM community_task
-            WHERE id = $1
+            WHERE id = $1 AND community_id = $2
             "#,
-            id
+            id,
+            cid,
         )
         .execute(&self.pool)
         .await
