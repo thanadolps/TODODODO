@@ -14,6 +14,7 @@ use poem_openapi::{
     ApiResponse, OpenApi, OpenApiService,
 };
 use sqlx::{postgres::types::PgInterval, PgPool};
+use time::macros::offset;
 use time::{Date, OffsetDateTime as DateTime};
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 use uuid::Uuid;
@@ -176,8 +177,8 @@ impl PerformanceRESTService {
     pub async fn list_routine_completions(
         &self,
         Query(task_ids): Query<Vec<Uuid>>,
-        Query(start_date): Query<Option<DateTime>>,
-        Query(end_date): Query<Option<DateTime>>,
+        // Query(start_date): Query<Option<DateTime>>,
+        // Query(end_date): Query<Option<DateTime>>,
     ) -> Result<Json<Vec<dtos::RoutineCompletionResponse>>> {
         let rcs: Vec<models::RoutineCompletion> = sqlx::query_as!(
             models::RoutineCompletion,
@@ -225,8 +226,22 @@ impl PerformanceRESTService {
                     },
                 ),
             };
-            let start_date_pg: Option<Date> = start_date.map(|start_date| start_date.date());
-            let end_date_pg: Option<Date> = end_date.map(|end_date| end_date.date());
+
+            // let start_date_pg = start_date.map(|start_date| start_date.date());
+            // let end_date_pg = end_date.map(|end_date| end_date.date());
+
+            let now = time::OffsetDateTime::now_utc()
+                .to_offset(offset!(+7))
+                .date();
+            let start_date_pg: time::Date = match typena.as_str() {
+                "daily" => now - 14 * time::Duration::DAY,
+                "weekly" => now - 8 * time::Duration::WEEK,
+                // prev 6 month
+                "monthly" => now - 30 * time::Duration::DAY,
+                _ => unreachable!(),
+            };
+            let end_date_pg = now;
+
             let bool_arr = sqlx::query_scalar!("SELECT ARRAY(
                 SELECT 
                     CASE 
