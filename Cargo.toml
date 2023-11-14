@@ -29,9 +29,13 @@ serde = "1.0.188"
 tokio = { version = "1.32.0", features = ["macros", "rt-multi-thread"] }
 tracing = "0.1.37"
 tracing-subscriber = {version="0.3.17", features=["json", "env-filter"]}
+tracing-appender = "0.2"
 
 [profile.release]
 strip = true
 
 [profile.dev.package.sqlx-macros]
+opt-level = 3
+
+[profile.dev.package.poem-grpc-build]
 opt-level = 3

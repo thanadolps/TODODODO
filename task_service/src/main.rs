@@ -39,24 +39,7 @@ async fn main() -> color_eyre::Result<()> {
     let env = envy::from_env::<Env>().context("Failed to parse environment variables")?;
 
     // Setup tracing/logging
-    if std::env::var_os("RUST_LOG").is_none() {
-        std::env::set_var("RUST_LOG", "poem=debug,info");
-    }
-    tracing_subscriber::registry()
-        .with(fmt::layer().with_filter(EnvFilter::from_default_env()))
-        .with(if let Some(uri) = env.log_mongo_url.as_ref() {
-            Some(
-                tracing_mongo::MongoLogger::new(uri, "log", "task_service")
-                    .await?
-                    .layer(),
-            )
-        } else {
-            tracing::warn!("No log_mongo_url envar set, not logging to MongoDB");
-            None
-        })
-        .init();
-
-    tracing::info!(?env, "Environment Variable");
+    tracing_init(env.log_mongo_url).await?;
 
     // Setup database
     let pool = PgPool::connect(&env.database_url).await?;
@@ -138,5 +121,31 @@ async fn main() -> color_eyre::Result<()> {
         .run(route)
         .await
         .with_context(|| format!("Fail to start server on port {:?}", env.port))?;
+    Ok(())
+}
+
+#[tracing::instrument]
+async fn tracing_init(log_mongo_url: Option<String>) -> color_eyre::Result<()> {
+    if std::env::var_os("RUST_LOG").is_none() {
+        std::env::set_var("RUST_LOG", "poem=debug,info");
+    }
+
+    let file_appender = tracing_appender::rolling::hourly("./log", "tracing.log");
+
+    tracing_subscriber::registry()
+        .with(fmt::layer().with_filter(EnvFilter::from_default_env()))
+        .with(fmt::layer().json().with_writer(file_appender))
+        .with(if let Some(uri) = log_mongo_url.as_ref() {
+            Some(
+                tracing_mongo::MongoLogger::new(uri, "log", "task_service")
+                    .await?
+                    .layer(),
+            )
+        } else {
+            tracing::warn!("No log_mongo_url envar set, not logging to MongoDB");
+            None
+        })
+        .init();
+
     Ok(())
 }
