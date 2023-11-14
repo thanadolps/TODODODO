@@ -13,8 +13,8 @@ use poem_openapi::{
     payload::Json,
     ApiResponse, OpenApi, OpenApiService,
 };
-use sqlx::PgPool;
-use time::OffsetDateTime as DateTime;
+use sqlx::{postgres::types::PgInterval, PgPool};
+use time::{Date, OffsetDateTime as DateTime};
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 use uuid::Uuid;
 struct PerformanceGRPCService {
@@ -79,9 +79,10 @@ impl Performance for PerformanceGRPCService {
             .map_err(|err| Status::new(Code::InvalidArgument).with_message(err))?;
         // Add to table RoutineCompletion
         sqlx::query!(
-            "INSERT INTO routine_completion VALUES($1,$2)",
+            "INSERT INTO routine_completion VALUES($1,$2,$3)",
             uuid,
-            converted_completed_at
+            converted_completed_at,
+            request.typena,
         )
         .execute(&self.pool)
         .await
@@ -177,18 +178,85 @@ impl PerformanceRESTService {
         Query(task_ids): Query<Vec<Uuid>>,
         Query(start_date): Query<Option<DateTime>>,
         Query(end_date): Query<Option<DateTime>>,
-    ) -> Result<Json<Vec<dtos::RoutineCompletion>>> {
-        let rc = sqlx::query_as!(
+    ) -> Result<Json<Vec<dtos::RoutineCompletionResponse>>> {
+        let rcs: Vec<models::RoutineCompletion> = sqlx::query_as!(
             models::RoutineCompletion,
-            "SELECT * FROM score.routine_completion WHERE (completed_at >= $1 OR $1 IS NULL) AND (completed_at <= $2 OR $2 IS NULL) AND (task_id=ANY($3))",
-            start_date, end_date, &task_ids
+            "SELECT * FROM score.routine_completion WHERE (task_id=ANY($1))",
+            &task_ids
         )
         .fetch_all(&self.pool)
         .await
         .map_err(InternalServerError)?;
 
-        let dto_routine_completions = rc.into_iter().map(dtos::RoutineCompletion::from).collect();
-        Ok(Json(dto_routine_completions))
+        let mut responses = Vec::new();
+        for rc in &rcs {
+            let typena = rc.typena.clone();
+            let (date_trunc, interval) = match typena.as_str() {
+                "daily" => (
+                    "day",
+                    PgInterval {
+                        months: 0,
+                        days: 1,
+                        microseconds: 0,
+                    },
+                ),
+                "weekly" => (
+                    "week",
+                    PgInterval {
+                        months: 0,
+                        days: 7,
+                        microseconds: 0,
+                    },
+                ),
+                "monthly" => (
+                    "month",
+                    PgInterval {
+                        months: 1,
+                        days: 0,
+                        microseconds: 0,
+                    },
+                ),
+                _ => (
+                    "day",
+                    PgInterval {
+                        months: 0,
+                        days: 1,
+                        microseconds: 0,
+                    },
+                ),
+            };
+            let start_date_pg: Option<Date> = start_date.map(|start_date| start_date.date());
+            let end_date_pg: Option<Date> = end_date.map(|end_date| end_date.date());
+            let bool_arr = sqlx::query_scalar!("SELECT ARRAY(
+                SELECT 
+                    CASE 
+                        WHEN EXISTS (
+                            SELECT 1 
+                            FROM score.routine_completion rc 
+                            WHERE date_trunc($1, rc.completed_at::date) = s.series_date and task_id=$2
+                        ) THEN true
+                        ELSE false
+                    END
+                FROM (SELECT date_trunc($1, generate_series) AS series_date
+                FROM generate_series($3::date, $4::date, $5::interval) AS generate_series) as s
+            ) AS result_array;
+            ", date_trunc,rc.task_id, start_date_pg, end_date_pg, interval).fetch_one(&self.pool)
+            .await
+            .map_err(InternalServerError)?;
+
+            let dates_pg = sqlx::query_scalar!(r#"SELECT date_trunc($1, generate_series) as "dates!" FROM generate_series($2::date, $3::date, $4::interval) AS generate_series;"#, date_trunc, start_date_pg, end_date_pg, interval).fetch_all(&self.pool)
+            .await
+            .map_err(InternalServerError)?;
+            let response = dtos::RoutineCompletionResponse {
+                task_id: rc.task_id,
+                dates: dates_pg,
+                completions: bool_arr.unwrap_or_default(),
+                typena: rc.typena.clone(),
+            };
+            responses.push(response);
+        }
+
+        Ok(Json(responses))
     }
 
     #[oai(path = "/habit", method = "get")]
@@ -267,10 +335,10 @@ async fn main() -> color_eyre::Result<()> {
         if domain.contains("://") {
             domain
         } else {
-            format!("https://{}:{}", domain, env.port)
+            format!("https://{}:{}/api", domain, env.port)
         }
     } else {
-        format!("http://localhost:{}", env.port)
+        format!("http://localhost:{}/api", env.port)
     };
 
     let api_service = OpenApiService::new(

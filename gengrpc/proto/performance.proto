@@ -17,6 +17,7 @@ message StreakDetail {
 message RoutineDetail {
     string task_id = 1;
     google.protobuf.Timestamp completed_at = 2;
+    string typena = 3;
 }
 
 message HabitDetail {

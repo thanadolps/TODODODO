@@ -20,6 +20,20 @@ pub struct RoutineCompletion {
     pub task_id: Uuid,
     #[oai(read_only)]
     pub completed_at: Option<DateTime>,
+    #[oai(read_only)]
+    pub typena: String,
+}
+
+#[derive(Object)]
+pub struct RoutineCompletionResponse {
+    #[oai(read_only)]
+    pub task_id: Uuid,
+    #[oai(read_only)]
+    pub dates: Vec<DateTime>,
+    #[oai(read_only)]
+    pub completions: Vec<bool>,
+    #[oai(read_only)]
+    pub typena: String,
 }
 
 #[derive(Object, StructMapper)]

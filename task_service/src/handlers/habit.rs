@@ -110,7 +110,7 @@ impl Api {
                         triggered_at: Some(SystemTime::now().into())
                     })).await.map_err(InternalServerError)?;
 
-                    tracing::info!("Adding combo...");
+                    tracing::info!("Resetting combo...");
                     struct Result {
                         user_id: Uuid,
                     } 

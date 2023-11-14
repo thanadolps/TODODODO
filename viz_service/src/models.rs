@@ -13,6 +13,7 @@ pub struct Streak {
 #[derive(FromRow, Debug)]
 pub struct RoutineCompletion {
     pub task_id: Uuid,
+    pub typena: String,
     pub completed_at: Option<DateTime>,
 }
 

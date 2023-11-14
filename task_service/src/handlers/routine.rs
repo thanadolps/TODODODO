@@ -137,7 +137,8 @@ impl Api {
                     tracing::info!("Completing routine...");
                     self.performance.complete_routine(Request::new(RoutineDetail {
                         task_id: id.to_string(),
-                        completed_at: Some(SystemTime::now().into())
+                        completed_at: Some(SystemTime::now().into()),
+                        typena: routine.typena.clone(),
                     })).await.map_err(InternalServerError)?;
                     Ok(OptionalRoutineResponse::Ok(Json(routine)))
                 },
