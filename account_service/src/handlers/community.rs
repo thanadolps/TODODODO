@@ -73,6 +73,20 @@ impl Api {
         Ok(Json(community))
     }
 
+    /// Get community
+    #[oai(path = "/community/:id", method = "get")]
+    async fn get_community(&self, Path(id): Path<Uuid>) -> Result<Json<Community>> {
+        let community = get_community(&self.pool, id)
+            .await
+            .map_err(InternalServerError)?
+            .ok_or(Error::from_string(
+                "The community does not exist",
+                StatusCode::NOT_FOUND,
+            ))?;
+
+        Ok(Json(community))
+    }
+
     /// Delete community
     #[oai(path = "/community/:id", method = "delete")]
     async fn delete_community(&self, Path(id): Path<Uuid>, JWTAuth(claims): JWTAuth) -> Result<()> {
