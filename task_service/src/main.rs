@@ -67,10 +67,7 @@ async fn main() -> color_eyre::Result<()> {
         PerformanceClient::new(ClientConfig::builder().uri(env.performance_url).build()?);
 
     // Handler
-    let handler = handlers::Api {
-        pool: pool.clone(),
-        performance,
-    };
+    let handler = handlers::handlers(&pool, &performance);
 
     // OpenAPI
     let server_url = if let Some(domain) = env.public_domain {
