@@ -144,7 +144,7 @@ services:
       - "./viz_service:/app"
     command: "./viz_service"
     environment:
-      - "PUBLIC_DOMAIN=${GATEWAY_URL}/performance"
+      - "PUBLIC_DOMAIN=${GATEWAY_URL}/performance/api"
       - "PORT=8003"
       - "DATABASE_URL=postgresql://score:password@dbts:5432/postgres?search_path=score"
       - "LOG_MONGO_URL=mongodb://mongo-log:27017"
