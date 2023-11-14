@@ -273,14 +273,15 @@ async fn main() -> color_eyre::Result<()> {
     let pool = PgPool::connect(&env.database_url).await?;
     sqlx::migrate!("./migrations").run(&pool).await?;
 
+    // OpenAPI
     let server_url = if let Some(domain) = env.public_domain {
         if domain.contains("://") {
-            format!("{}:{}/api", domain, env.port)
+            domain
         } else {
-            format!("https://{}:{}/api", domain, env.port)
+            format!("https://{}:{}", domain, env.port)
         }
     } else {
-        format!("http://localhost:{}/api", env.port)
+        format!("http://localhost:{}", env.port)
     };
 
     let api_service = OpenApiService::new(
